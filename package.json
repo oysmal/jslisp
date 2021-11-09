@@ -2,9 +2,10 @@
   "name": "jslisp",
   "version": "0.0.1",
   "description": "A lisp-like functional library inside javascript",
-  "main": "index.js",
+  "main": "src/core.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/index.js"
   },
   "author": "",
   "license": "ISC"
