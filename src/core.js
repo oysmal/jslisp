@@ -28,10 +28,11 @@ export const applyForms = (scope, forms) => {
 export const l = (...forms) => applyForms(globalScope, forms);
 
 // arithmetic ops
-export const add = (scope, ...args) => args.reduce((acc, x) => acc + x);
-export const sub = (scope, ...args) => args.reduce((acc, x) => acc - x);
-export const mult = (scope, ...args) => args.reduce((acc, x) => acc * x);
-export const div = (scope, ...args) => args.reduce((acc, x) => acc / x);
+export const add = (scope, ...args) => args.reduce((acc, x) => acc + x, 0);
+export const sub = (scope, ...args) => args.reduce((acc, x) => acc - x, 0);
+export const mult = (scope, ...args) => args.reduce((acc, x) => acc * x, 1);
+export const div = (scope, ...args) =>
+  args.slice(1).reduce((acc, x) => acc / x, args[0]);
 export const pow = (scope, a, b) => Math.pow(a, b);
 export const sqrt = (scope, a) => Math.sqrt(a);
 
@@ -66,4 +67,7 @@ export const lambda = (scope, args, forms) => {
     return applyForms(scope, forms);
   };
 };
+
+funcScope.set("add", add);
+funcScope.set("mult", mult);
 export const f = (_, key) => funcScope.get(key);

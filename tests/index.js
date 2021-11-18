@@ -31,8 +31,7 @@ const ftest = l(
 l(lf(defg, "c", 5));
 
 // prettier-ignore
-console.log("TEST: ", l(lf(lf(f, "fntest"),
-                           10,
+console.log("TEST: ", l(lf(lf(f, "fntest"), 10,
                            10)));
 
 // prettier-ignore
@@ -53,9 +52,16 @@ const res = l(
 console.log("Lambda: ", res);
 
 console.log(l(lf(def, "test", 5), lf(v, "test")));
+
 const test = l(
   lf(def, "myVar", 2),
   lf(mult, lf(add, 1, lf(v, "myVar")), lf(sub, 5, 3))
 );
 
 console.log(test);
+
+/* THE GOAL:
+l(`
+(map [1 2 3 4] (lambda [x] (str "Number: " x)))
+`)
+*/
