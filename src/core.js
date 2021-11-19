@@ -69,5 +69,18 @@ export const lambda = (scope, args, forms) => {
 };
 
 funcScope.set("add", add);
+funcScope.set("+", add);
 funcScope.set("mult", mult);
+funcScope.set("*", mult);
+funcScope.set("sub", sub);
+funcScope.set("-", sub);
+funcScope.set("div", div);
+funcScope.set("/", div);
+funcScope.set("pow", pow);
+funcScope.set("sqrt", sqrt);
+funcScope.set("def", def);
+funcScope.set("str", str);
+funcScope.set("split", split);
+funcScope.set("print", print);
+
 export const f = (_, key) => funcScope.get(key);

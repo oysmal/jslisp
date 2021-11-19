@@ -145,7 +145,11 @@ export function parseLF(sourceCode, index) {
 }
 
 // WORKS:
-console.log(parseL(`(add 1 2 (mult 3 4) 5)`)());
+// console.log(parseL(`(add 1 2 (mult 3 4) 5)`)());
+// console.log(parseL(`(mult 3 2 (mult (add 5)) 10)`)());
 
-// DOESNT WORK:
-console.log(parseL(`(mult 3 2 (mult (add 5)) 10)`)());
+console.log(
+  parseL(`
+(+ 1 2 3)
+`)()
+);
