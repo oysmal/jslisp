@@ -2,6 +2,7 @@ import { l, lf, f, def, v, add } from "./core.js";
 
 const Node = "__$NODE__";
 const Closing = "__$CLOSING__";
+const ClosingArray = "__$CLOSING_ARRAY__";
 
 function tokenizer(source) {
   const singleTokens = "()[]{}".split("");
@@ -208,6 +209,9 @@ function parseLF2(tokens, index) {
   if (token === ")") {
     return { type: Closing, nextIndex: i + 1 };
   }
+  if (token === "]") {
+    return { type: ClosingArray, nextIndex: i + 1 };
+  }
 
   if (token === "(") {
     if (tokens[i + 1] === "(") {
@@ -245,6 +249,26 @@ function parseLF2(tokens, index) {
         value: lf(lf(f, funcName), ...args),
       };
     }
+  } else if (token === "[") {
+    const array = [];
+    let cur = parseLF2(tokens, i + 1);
+    while (cur?.type !== ClosingArray) {
+      array.push(cur.value);
+      i = cur.nextIndex;
+      cur = parseLF2(tokens, i);
+    }
+
+    if (cur.value !== undefined) {
+      array.push(cur.value);
+    }
+
+    i = cur.nextIndex;
+
+    console.log(array);
+    return {
+      nextIndex: i,
+      value: array,
+    };
   } else if (token.charAt(0) === '"') {
     return { nextIndex: i + 1, value: token };
   } else if (token === "true" || token === "false") {
@@ -300,24 +324,34 @@ function logDFS(node) {
 // );
 
 // console.log("tokens: ", tokenizer(`((def a 2) (add (2 5))`));
-console.log(
-  "RESULT: ",
-  l(parseLF2(tokenizer(`((defg a 2) (add (g a) 2))`), 0).value)
-);
+// console.log(
+//   "RESULT: ",
+//   l(parseLF2(tokenizer(`((defg a 2) (add (g a) 2))`), 0).value)
+// );
+
+// console.log(
+//   "RESULT: ",
+//   l(
+//     parseLF2(
+//       tokenizer(`
+// (
+//   (def a
+//     (cond
+//       (= 1 1)
+//       (* (+ 4 1 (- 2 1)) 3)
+//       (+ 1 1)))
+//   (+ (v a) 2)
+// )`),
+//       0
+//     ).value
+//   )
+// );
 
 console.log(
   "RESULT: ",
   l(
     parseLF2(
-      tokenizer(`
-(
-  (def a
-    (cond 
-      (= 1 1)
-      (* (+ 4 1 (- 2 1)) 3)
-      (+ 1 1)))
-  (+ (v a) 2)
-)`),
+      tokenizer(`((defn my/func [a b] ((pow (v a) (v b)))) (my/func 2 3))`),
       0
     ).value
   )

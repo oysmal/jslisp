@@ -5,13 +5,18 @@ export const globalScope = new Map();
 export const funcScope = new Map();
 
 export function applyForm(scope, form) {
+  console.log("_____________");
   if (typeof form === "object" && form?.type === JSLispFormResult) {
     return form.value;
   } else if (typeof form === "object" && form?.type === JSLispForm) {
+    console.log(form);
     const appliedForm = applyForm(scope, form.data[0]);
     const fn = appliedForm.value ?? appliedForm;
 
-    if (typeof fn !== "function") return fn;
+    if (typeof fn !== "function") {
+      console.log("not a fn, returning: ", fn);
+      return fn;
+    }
 
     const args = form.data.slice(1).map((x) => {
       const appliedItem = applyForm(scope, x);
@@ -20,6 +25,7 @@ export function applyForm(scope, form) {
         : appliedItem;
     });
 
+    console.log("ARGS: ", args);
     const value = fn(scope, ...args);
 
     return {
@@ -27,6 +33,7 @@ export function applyForm(scope, form) {
       type: JSLispFormResult,
     };
   } else {
+    console.log("Else returning: ", form);
     return form;
   }
 }
@@ -37,15 +44,19 @@ export const lf = (...data) => ({
   scope: new Map(),
 });
 
+function isArrayOfForms(forms) {
+  return Array.isArray(forms) && forms.every((x) => x.type === JSLispForm);
+}
+
 export function applyForms(scope, forms) {
-  if (!Array.isArray(forms)) return forms;
+  if (!isArrayOfForms(forms)) return forms;
 
   for (let i = 0; i < forms.length; i++) {
     let formResult = null;
 
-    if (Array.isArray(forms[i]) && forms[i].length > 0) {
+    if (isArrayOfForms(forms[i]) && forms[i].length > 0) {
       formResult = applyForms(scope, forms[i]);
-    } else {
+    } else if (forms[i].type === JSLispForm) {
       const formData = forms[i].data.map((item) => {
         const appliedItem = applyForms(scope, item);
         return appliedItem.type === JSLispFormResult
@@ -53,9 +64,13 @@ export function applyForms(scope, forms) {
           : appliedItem;
       });
       formResult = applyForm(scope, { ...forms[i], data: formData });
+    } else {
+      console.log("ELSE formResult: ", forms[i]);
+      formResult = forms[i];
     }
 
     if (i === forms.length - 1) {
+      console.log("returning form result: ", formResult);
       return formResult;
     }
   }
@@ -146,6 +161,7 @@ funcScope.set("/", div);
 funcScope.set("pow", pow);
 funcScope.set("sqrt", sqrt);
 funcScope.set("def", def);
+funcScope.set("defn", defn);
 funcScope.set("defg", defg);
 funcScope.set("v", v);
 funcScope.set("g", g);
