@@ -1,16 +1,35 @@
 export const JSLispForm = Symbol("jslispForm");
+export const JSLispFormResult = Symbol("jslispFormResult");
 
 export const globalScope = new Map();
 export const funcScope = new Map();
 
-export const applyForm = (scope, form) => {
-  return typeof form === "object" && form.type === JSLispForm
-    ? applyForm(scope, form.data[0])(
-        scope,
-        ...form.data.slice(1).map((x) => applyForm(scope, x))
-      )
-    : form;
-};
+export function applyForm(scope, form) {
+  if (typeof form === "object" && form?.type === JSLispFormResult) {
+    return form.value;
+  } else if (typeof form === "object" && form?.type === JSLispForm) {
+    const appliedForm = applyForm(scope, form.data[0]);
+    const fn = appliedForm.value ?? appliedForm;
+
+    if (typeof fn !== "function") return fn;
+
+    const args = form.data.slice(1).map((x) => {
+      const appliedItem = applyForm(scope, x);
+      return appliedItem.type === JSLispFormResult
+        ? appliedItem.value
+        : appliedItem;
+    });
+
+    const value = fn(scope, ...args);
+
+    return {
+      value,
+      type: JSLispFormResult,
+    };
+  } else {
+    return form;
+  }
+}
 
 export const lf = (...data) => ({
   type: JSLispForm,
@@ -18,18 +37,37 @@ export const lf = (...data) => ({
   scope: new Map(),
 });
 
-export const applyForms = (scope, forms) => {
+export function applyForms(scope, forms) {
+  if (!Array.isArray(forms)) return forms;
+
   for (let i = 0; i < forms.length; i++) {
-    if (i === forms.length - 1) return applyForm(scope, forms[i]);
-    else applyForm(scope, forms[i]);
+    let formResult = null;
+
+    if (Array.isArray(forms[i]) && forms[i].length > 0) {
+      formResult = applyForms(scope, forms[i]);
+    } else {
+      const formData = forms[i].data.map((item) => {
+        const appliedItem = applyForms(scope, item);
+        return appliedItem.type === JSLispFormResult
+          ? appliedItem.value
+          : appliedItem;
+      });
+      formResult = applyForm(scope, { ...forms[i], data: formData });
+    }
+
+    if (i === forms.length - 1) {
+      return formResult;
+    }
   }
-};
+  return null;
+}
 
 export const l = (...forms) => applyForms(globalScope, forms);
 
 // arithmetic ops
 export const add = (scope, ...args) => args.reduce((acc, x) => acc + x, 0);
-export const sub = (scope, ...args) => args.reduce((acc, x) => acc - x, 0);
+export const sub = (scope, ...args) =>
+  args.slice(1).reduce((acc, x) => acc - x, args[0]);
 export const mult = (scope, ...args) => args.reduce((acc, x) => acc * x, 1);
 export const div = (scope, ...args) =>
   args.slice(1).reduce((acc, x) => acc / x, args[0]);
@@ -68,6 +106,35 @@ export const lambda = (scope, args, forms) => {
   };
 };
 
+export function lif(scope, ...forms) {
+  const result = applyForm(scope, forms);
+  if (result.length !== 3)
+    throw new SyntaxError(
+      "Wrong number of arguments to function <lif>. It requires 3 arguments. You provided: " +
+        forms.length
+    );
+  const equalityExpr = result[0];
+
+  if (
+    equalityExpr.type === JSLispFormResult ? equalityExpr.value : equalityExpr
+  ) {
+    return result[1];
+  } else {
+    return result[2];
+  }
+}
+
+export const equals = (scope, ...forms) => {
+  return forms
+    .map((item) => {
+      const appliedItem = applyForms(scope, item);
+      const val =
+        appliedItem.type === JSLispFormResult ? appliedItem.value : appliedItem;
+      return val;
+    })
+    .reduce((acc, item) => acc && item, true);
+};
+
 funcScope.set("add", add);
 funcScope.set("+", add);
 funcScope.set("mult", mult);
@@ -79,8 +146,14 @@ funcScope.set("/", div);
 funcScope.set("pow", pow);
 funcScope.set("sqrt", sqrt);
 funcScope.set("def", def);
+funcScope.set("defg", defg);
+funcScope.set("v", v);
+funcScope.set("g", g);
 funcScope.set("str", str);
 funcScope.set("split", split);
 funcScope.set("print", print);
+funcScope.set("cond", lif);
+funcScope.set("equals", equals);
+funcScope.set("=", equals);
 
 export const f = (_, key) => funcScope.get(key);

@@ -1,4 +1,4 @@
-import { l, lf, f } from "./core.js";
+import { l, lf, f, def, v, add } from "./core.js";
 
 const Node = "__$NODE__";
 const Closing = "__$CLOSING__";
@@ -33,18 +33,18 @@ function tokenizer(source) {
   return tokens;
 }
 
-console.log(
-  tokenizer(`
-(lambda calc [a b]
- (def res (add a b))
- (add res b))
-(mult
- 3
- (calc 2 3)
- (mult
-  (add 5))
- 10)`)
-);
+// console.log(
+//   tokenizer(`
+// (lambda calc [a b]
+//  (def res (add a b))
+//  (add res b))
+// (mult
+//  3
+//  (calc 2 3)
+//  (mult
+//   (add 5))
+//  10)`)
+// );
 
 export function parse(source) {
   const stack = [];
@@ -105,7 +105,7 @@ export function parse(source) {
     i = nextSpaceIndex + 1; // increment i
   }
 
-  console.log(current);
+  // console.log(current);
 }
 
 // console.log(
@@ -191,11 +191,11 @@ export function parseLF(sourceCode, index) {
 // console.log(parseL(`(add 1 2 (mult 3 4) 5)`)());
 // console.log(parseL(`(mult 3 2 (mult (add 5)) 10)`)());
 
-console.log(
-  parseL(`
-(+ 1 2 3)
-`)()
-);
+// console.log(
+//   parseL(`
+// (+ 1 2 3)
+// `)()
+// );
 
 function parseL2(source) {
   const tokens = tokenizer(source);
@@ -203,9 +203,7 @@ function parseL2(source) {
 
 function parseLF2(tokens, index) {
   let i = index;
-  console.log("parse at index: ", i);
   const token = tokens[i];
-  console.log("Current token: ", token);
 
   if (token === ")") {
     return { type: Closing, nextIndex: i + 1 };
@@ -241,8 +239,8 @@ function parseLF2(tokens, index) {
       }
 
       i = cur.nextIndex;
+
       return {
-        type: Closing,
         nextIndex: i,
         value: lf(lf(f, funcName), ...args),
       };
@@ -265,30 +263,61 @@ function logDFS(node) {
   console.log(node);
 }
 
-logDFS(
-  parseLF2(
-    tokenizer(`
-(mult
- 3
- (mult
-  (add 5)
-  2)
- 10)`),
-    0
-  ).value
+// logDFS(
+//   parseLF2(
+//     tokenizer(`
+// (mult
+//  3
+//  (mult
+//   (add 5)
+//   2)
+//  10)`),
+//     0
+//   ).value
+// );
+
+// console.log(
+//   "Exection result: ",
+//   l(
+//     parseLF2(
+//       tokenizer(`
+// (mult
+//  3
+//  (mult
+//   (add 5)
+//   2)
+//  10)`),
+//       0
+//     ).value
+//   )
+// );
+
+// console.log("Without parsing: ", l(lf(def, "a", 2), lf(add, lf(v, "a"), 5)));
+
+// console.log(
+//   "Exection result 2: ",
+//   l(parseLF2(tokenizer(`(mult 10 (add 5 2) 10 10)`), 0).value)
+// );
+
+// console.log("tokens: ", tokenizer(`((def a 2) (add (2 5))`));
+console.log(
+  "RESULT: ",
+  l(parseLF2(tokenizer(`((defg a 2) (add (g a) 2))`), 0).value)
 );
 
 console.log(
-  "Exection result: ",
+  "RESULT: ",
   l(
     parseLF2(
       tokenizer(`
-(mult
- 3
- (mult
-  (add 5)
-  2)
- 10)`),
+(
+  (def a
+    (cond 
+      (= 1 1)
+      (* (+ 4 1 (- 2 1)) 3)
+      (+ 1 1)))
+  (+ (v a) 2)
+)`),
       0
     ).value
   )
