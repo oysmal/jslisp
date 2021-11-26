@@ -140,14 +140,12 @@ export function lif(scope, ...forms) {
 }
 
 export const equals = (scope, ...forms) => {
-  return forms
-    .map((item) => {
-      const appliedItem = applyForms(scope, item);
-      const val =
-        appliedItem.type === JSLispFormResult ? appliedItem.value : appliedItem;
-      return val;
-    })
-    .reduce((acc, item) => acc && item, true);
+  return forms.every((item) => {
+    const appliedItem = applyForms(scope, item);
+    const val =
+      appliedItem.type === JSLispFormResult ? appliedItem.value : appliedItem;
+    return !!val;
+  });
 };
 
 funcScope.set("add", add);
