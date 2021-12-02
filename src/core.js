@@ -1,23 +1,33 @@
+import { debugLog, infoLog } from "./Logger.js";
 export const JSLispForm = Symbol("jslispForm");
 export const JSLispFormResult = Symbol("jslispFormResult");
+export const JSLispExport = Symbol("JSLispExport");
 
 export const globalScope = new Map();
 export const funcScope = new Map();
 
 export function applyForm(scope, form) {
-  console.log("_____________");
+  debugLog("_____________");
   if (typeof form === "object" && form?.type === JSLispFormResult) {
+    debugLog("Returning plain value", form.value);
     return form.value;
   } else if (typeof form === "object" && form?.type === JSLispForm) {
-    console.log(form);
+    debugLog("FORM: ", form);
     const appliedForm = applyForm(scope, form.data[0]);
     const fn = appliedForm.value ?? appliedForm;
 
     if (typeof fn !== "function") {
-      console.log("not a fn, returning: ", fn);
+      debugLog("not a fn, returning: ", fn.data);
       return fn;
+    } else if (
+      typeof appliedForm === "object" &&
+      appliedForm?.type === JSLispExport
+    ) {
+      infoLog("Returning an export", appliedForm.value);
+      return appliedForm.value;
     }
 
+    infoLog("this is a function: ", form.data[0]);
     const args = form.data.slice(1).map((x) => {
       const appliedItem = applyForm(scope, x);
       return appliedItem.type === JSLispFormResult
@@ -25,7 +35,7 @@ export function applyForm(scope, form) {
         : appliedItem;
     });
 
-    console.log("ARGS: ", args);
+    infoLog("ARGS: ", args);
     const value = fn(scope, ...args);
 
     return {
@@ -33,7 +43,7 @@ export function applyForm(scope, form) {
       type: JSLispFormResult,
     };
   } else {
-    console.log("Else returning: ", form);
+    debugLog("Else returning: ", form);
     return form;
   }
 }
@@ -50,6 +60,7 @@ function isArrayOfForms(forms) {
 
 export function applyForms(scope, forms) {
   if (!isArrayOfForms(forms)) return forms;
+  debugLog("applyForms", forms);
 
   for (let i = 0; i < forms.length; i++) {
     let formResult = null;
@@ -65,15 +76,16 @@ export function applyForms(scope, forms) {
       });
       formResult = applyForm(scope, { ...forms[i], data: formData });
     } else {
-      console.log("ELSE formResult: ", forms[i]);
+      debugLog("ELSE formResult: ", forms[i]);
       formResult = forms[i];
     }
 
     if (i === forms.length - 1) {
-      console.log("returning form result: ", formResult);
+      infoLog("returning form result: ", formResult);
       return formResult;
     }
   }
+  infoLog("Returning null");
   return null;
 }
 
@@ -103,8 +115,18 @@ export const defg = (_, key, a) => globalScope.set(key, a);
 export const v = (scope, key) => scope.get(key);
 export const g = (_, key) => globalScope.get(key);
 
+// export
+export const exportf = (scope, key) => ({
+  type: JSLispExport,
+  value: (...args) => funcScope.get(key)(scope, ...args).value, // unwrap from formResult when exporting
+});
+export const exportv = (scope, key) => ({
+  type: JSLispExport,
+  value: scope.get(key),
+});
+
 // io
-export const print = (scope, ...args) => console.log(args);
+export const print = (scope, ...args) => debugLog(args);
 
 // functions
 export const defn = (_, key, args, forms) =>
@@ -161,6 +183,8 @@ funcScope.set("sqrt", sqrt);
 funcScope.set("def", def);
 funcScope.set("defn", defn);
 funcScope.set("defg", defg);
+funcScope.set("exportf", exportf);
+funcScope.set("exportv", exportv);
 funcScope.set("v", v);
 funcScope.set("g", g);
 funcScope.set("str", str);

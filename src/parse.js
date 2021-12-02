@@ -47,7 +47,7 @@ function tokenizer(source) {
 }
 
 function jslisp(source) {
-  return parseL2(source);
+  return l(parseL2(source).value);
 }
 function parseL2(source) {
   const tokens = tokenizer(source);
@@ -116,13 +116,12 @@ function parseLF2(tokens, index) {
 
     i = cur.nextIndex;
 
-    console.log(array);
     return {
       nextIndex: i,
       value: array,
     };
   } else if (token.charAt(0) === '"') {
-    return { nextIndex: i + 1, value: token };
+    return { nextIndex: i + 1, value: token.slice(1, token.length - 1) };
   } else if (token === "true" || token === "false") {
     return { nextIndex: i + 1, value: token === "true" ? true : false };
   } else if (token.match(/[0-9\-\+\.]+/)) {
@@ -143,8 +142,7 @@ function logDFS(node) {
 //   parseLF2(
 //     tokenizer(`
 // (mult
-//  3
-//  (mult
+//  3 //  (mult
 //   (add 5)
 //   2)
 //  10)`),
@@ -199,15 +197,21 @@ function logDFS(node) {
 //   )
 // );
 
-console.log(
-  "RESULT: ",
-  l(
-    parseLF2(
-      tokenizer(`((defn my/func [a b] ((pow (v a) (v b)))) (my/func 2 3))`),
-      0
-    ).value
-  )
-);
+// console.log(
+//   "RESULT: ",
+//   l(
+//     parseLF2(
+//       tokenizer(`((defn my/func [a b] ((pow (v a) (v b)))) (my/func 2 3))`),
+//       0
+//     ).value
+//   )
+// );
+
+const programRes1 = jslisp(`(
+(add 1 2)
+)`);
+
+console.log("ONE: ", programRes1);
 
 const programRes = jslisp(`(
 (defn my/test [a] (
@@ -215,4 +219,11 @@ const programRes = jslisp(`(
 
 (my/test "Øystein Malt"))`);
 
-console.log(programRes.value);
+console.log(programRes);
+
+const myfn = jslisp(`(
+(defn my/test [a] (
+  (str "Hello, " (v a))))
+(exportf my/test))`);
+
+console.log(myfn("Mememememe"));
