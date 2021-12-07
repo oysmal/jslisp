@@ -207,23 +207,61 @@ function logDFS(node) {
 //   )
 // );
 
-const programRes1 = jslisp(`(
-(add 1 2)
-)`);
+// const programRes1 = jslisp(`(
+// (add 1 2)
+// )`);
 
-console.log("ONE: ", programRes1);
+// console.log("ONE: ", programRes1);
 
-const programRes = jslisp(`(
-(defn my/test [a] (
-  (str "Hello, " (v a))))
+// const programRes = jslisp(`(
+// (defn my/test [a] (
+//   (str "Hello, " (v a))))
 
-(my/test "Øystein Malt"))`);
+// (my/test "Øystein Malt"))`);
 
-console.log(programRes);
+// console.log(programRes);
 
-const myfn = jslisp(`(
-(defn my/test [a] (
-  (str "Hello, " (v a))))
-(exportf my/test))`);
+// const myfn = jslisp(`(
+// (defn my/test [a] (
+//   (str "Hello, " (v a))))
+// (exportf my/test))`);
 
-console.log(myfn("Mememememe"));
+// const myAdd = jslisp(`(
+// (defn my/add [a b] (
+//   (add (v a) (v b))))
+// (exportf my/add))`);
+
+const fib = jslisp(`(
+(defn my/fib [n] (
+  (cond (= (v n) 0)
+    (v n)
+    (cond (= (v n) 1)
+       (v n)
+       (+
+         (my/fib (- (v n) 1))
+         (my/fib (- (v n) 2)))))))
+(exportf my/fib))`);
+
+// console.log(myfn("Mememememe"));
+// console.log(myAdd(123123, 3434));
+
+const s1 = Date.now();
+console.log(fib(30));
+const s2 = Date.now() - s1;
+console.log("jslisp: ", s2);
+
+function fibbo(n) {
+  switch (n) {
+    case 0:
+    case 1:
+      return n;
+    default:
+      return fibbo(n - 1) + fibbo(n - 2);
+  }
+}
+
+const s3 = Date.now();
+const x = fibbo(30);
+const s4 = Date.now() - s3;
+
+console.log("pure js: ", s4);

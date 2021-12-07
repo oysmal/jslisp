@@ -25,6 +25,9 @@ export function applyForm(scope, form) {
     ) {
       infoLog("Returning an export", appliedForm.value);
       return appliedForm.value;
+    } else if (fn === lif) {
+      infoLog("Calling cond with args", form.data.slice(1));
+      return lif(scope, ...form.data.slice(1));
     }
 
     infoLog("this is a function: ", form.data[0]);
@@ -118,7 +121,12 @@ export const g = (_, key) => globalScope.get(key);
 // export
 export const exportf = (scope, key) => ({
   type: JSLispExport,
-  value: (...args) => funcScope.get(key)(scope, ...args).value, // unwrap from formResult when exporting
+  value: (...args) => {
+    const val = funcScope.get(key)(scope, ...args); // unwrap from formResult when exporting
+    if (val.type === JSLispFormResult || val.type === JSLispExport) {
+      return val.value;
+    } else return val;
+  },
 });
 export const exportv = (scope, key) => ({
   type: JSLispExport,
@@ -126,7 +134,7 @@ export const exportv = (scope, key) => ({
 });
 
 // io
-export const print = (scope, ...args) => debugLog(args);
+export const print = (scope, ...args) => console.log(...args);
 
 // functions
 export const defn = (_, key, args, forms) =>
@@ -144,30 +152,42 @@ export const lambda = (scope, args, forms) => {
 };
 
 export function lif(scope, ...forms) {
-  const result = applyForm(scope, forms);
-  if (result.length !== 3)
+  const test = applyForm(scope, forms[0]);
+
+  if (forms.length !== 3)
     throw new SyntaxError(
       "Wrong number of arguments to function <lif>. It requires 3 arguments. You provided: " +
         forms.length
     );
-  const equalityExpr = result[0];
 
-  if (
-    equalityExpr.type === JSLispFormResult ? equalityExpr.value : equalityExpr
-  ) {
-    return result[1];
+  const testValue = test.type === JSLispFormResult ? test.value : test;
+  if (testValue) {
+    const res = applyForm(scope, forms[1]);
+    if (res.type === JSLispFormResult || res.type === JSLispExport) {
+      return res.value;
+    } else return res;
   } else {
-    return result[2];
+    const res = applyForm(scope, forms[2]);
+    if (res.type === JSLispFormResult || res.type === JSLispExport) {
+      return res.value;
+    } else return res;
   }
 }
 
 export const equals = (scope, ...forms) => {
-  return forms.every((item) => {
+  const formValues = forms.map((item) => {
     const appliedItem = applyForms(scope, item);
-    const val =
-      appliedItem.type === JSLispFormResult ? appliedItem.value : appliedItem;
-    return !!val;
+    return appliedItem.type === JSLispFormResult
+      ? appliedItem.value
+      : appliedItem;
   });
+
+  let cur = formValues[0];
+  for (let val of formValues.slice(1)) {
+    if (cur !== val) return false;
+    cur = val;
+  }
+  return true;
 };
 
 funcScope.set("add", add);
