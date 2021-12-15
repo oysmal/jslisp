@@ -25,9 +25,9 @@ export function applyForm(scope, form) {
     ) {
       infoLog("Returning an export", appliedForm.value);
       return appliedForm.value;
-    } else if (fn === lif) {
+    } else if (fn === cond) {
       infoLog("Calling cond with args", form.data.slice(1));
-      return lif(scope, ...form.data.slice(1));
+      return cond(scope, ...form.data.slice(1));
     }
 
     infoLog("this is a function: ", form.data[0]);
@@ -57,12 +57,15 @@ export const lf = (...data) => ({
   scope: new Map(),
 });
 
+// Could this just check the first element? Reduce O by n
 function isArrayOfForms(forms) {
-  return Array.isArray(forms) && forms.every((x) => x.type === JSLispForm);
+  return (
+    Array.isArray(forms) && forms.length > 0 && forms[0].type === JSLispForm
+  ); // forms.every((x) => x.type === JSLispForm);
 }
 
 export function applyForms(scope, forms) {
-  if (!isArrayOfForms(forms)) return forms;
+  if (typeof forms !== "object" || !isArrayOfForms(forms)) return forms;
   debugLog("applyForms", forms);
 
   for (let i = 0; i < forms.length; i++) {
@@ -95,12 +98,35 @@ export function applyForms(scope, forms) {
 export const l = (...forms) => applyForms(globalScope, forms);
 
 // arithmetic ops
-export const add = (scope, ...args) => args.reduce((acc, x) => acc + x, 0);
-export const sub = (scope, ...args) =>
-  args.slice(1).reduce((acc, x) => acc - x, args[0]);
-export const mult = (scope, ...args) => args.reduce((acc, x) => acc * x, 1);
-export const div = (scope, ...args) =>
-  args.slice(1).reduce((acc, x) => acc / x, args[0]);
+
+export const add = (scope, ...args) => {
+  let sum = args[0];
+  for (let i = 1; i < args.length; i++) {
+    sum += args[i];
+  }
+  return sum;
+};
+export const sub = (scope, ...args) => {
+  let sum = args[0];
+  for (let i = 1; i < args.length; i++) {
+    sum -= args[i];
+  }
+  return sum;
+};
+export const mult = (scope, ...args) => {
+  let sum = args[0];
+  for (let i = 1; i < args.length; i++) {
+    sum *= args[i];
+  }
+  return sum;
+};
+export const div = (scope, ...args) => {
+  let sum = args[0];
+  for (let i = 1; i < args.length; i++) {
+    sum /= args[i];
+  }
+  return sum;
+};
 export const pow = (scope, a, b) => Math.pow(a, b);
 export const sqrt = (scope, a) => Math.sqrt(a);
 
@@ -128,6 +154,7 @@ export const exportf = (scope, key) => ({
     } else return val;
   },
 });
+
 export const exportv = (scope, key) => ({
   type: JSLispExport,
   value: scope.get(key),
@@ -151,12 +178,12 @@ export const lambda = (scope, args, forms) => {
   };
 };
 
-export function lif(scope, ...forms) {
+export function cond(scope, ...forms) {
   const test = applyForm(scope, forms[0]);
 
   if (forms.length !== 3)
     throw new SyntaxError(
-      "Wrong number of arguments to function <lif>. It requires 3 arguments. You provided: " +
+      "Wrong number of arguments to function <cond>. It requires 3 arguments. You provided: " +
         forms.length
     );
 
@@ -175,19 +202,15 @@ export function lif(scope, ...forms) {
 }
 
 export const equals = (scope, ...forms) => {
-  const formValues = forms.map((item) => {
-    const appliedItem = applyForms(scope, item);
-    return appliedItem.type === JSLispFormResult
-      ? appliedItem.value
-      : appliedItem;
-  });
+  const [a, b] = forms;
+  const appliedA = applyForms(scope, a);
+  const appliedAValue =
+    appliedA.type === JSLispFormResult ? appliedA.value : appliedA;
+  const appliedB = applyForms(scope, b);
+  const appliedBValue =
+    appliedB.type === JSLispFormResult ? appliedB.value : appliedB;
 
-  let cur = formValues[0];
-  for (let val of formValues.slice(1)) {
-    if (cur !== val) return false;
-    cur = val;
-  }
-  return true;
+  return appliedAValue === appliedBValue;
 };
 
 funcScope.set("add", add);
@@ -210,7 +233,7 @@ funcScope.set("g", g);
 funcScope.set("str", str);
 funcScope.set("split", split);
 funcScope.set("print", print);
-funcScope.set("cond", lif);
+funcScope.set("cond", cond);
 funcScope.set("equals", equals);
 funcScope.set("=", equals);
 

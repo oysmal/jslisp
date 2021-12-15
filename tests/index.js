@@ -102,21 +102,26 @@ function logDFS(node) {
 // (exportf my/add))`);
 
 const fib = jslisp(`(
-(defn my/fib [n] (
-  (cond (= (v n) 0)
-    (v n)
-    (cond (= (v n) 1)
-       (v n)
-       (+
-         (my/fib (- (v n) 1))
-         (my/fib (- (v n) 2)))))))
+(defn my/fib [n last current] (
+    (cond (= (v n) 0) 
+      (v current)
+      (my/fib (- (v n) 1) (v current) (+ (v last) (v current))))))
+
 (exportf my/fib))`);
+
+// const fac = jslisp(`(
+// (defn my/fac [sum n] (
+//   (cond (= (v n) 0)
+//      (v sum)
+//      (my/fac (* (v sum) (v n))))
+// ))
+// (exportf my/fac))`);
 
 // console.log(myfn("Mememememe"));
 // console.log(myAdd(123123, 3434));
 
 const s1 = Date.now();
-const x = fib(25);
+const x = fib(25, 1, 1);
 const s2 = Date.now() - s1;
 console.log("jslisp time: ", s2, ", value: " + x);
 
