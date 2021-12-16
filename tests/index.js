@@ -103,29 +103,22 @@ function logDFS(node) {
 
 const fib = jslisp(`(
 (defn my/fib [n last current] (
-    (cond (= (v n) 0) 
+    (cond (= (v n) 2)
       (v current)
       (my/fib (- (v n) 1) (v current) (+ (v last) (v current))))))
-
 (exportf my/fib))`);
 
-// const fac = jslisp(`(
-// (defn my/fac [sum n] (
-//   (cond (= (v n) 0)
-//      (v sum)
-//      (my/fac (* (v sum) (v n))))
-// ))
-// (exportf my/fac))`);
-
-// console.log(myfn("Mememememe"));
-// console.log(myAdd(123123, 3434));
-
 const s1 = Date.now();
-const x = fib(25, 1, 1);
+const x = fib(500, 1, 1);
 const s2 = Date.now() - s1;
 console.log("jslisp time: ", s2, ", value: " + x);
 
-function fibbo(n) {
+function fib2(n, last, current) {
+  if (n === 2) return current;
+  return fib(n - 1, current, last + current);
+}
+
+function slowFib(n) {
   switch (n) {
     case 0:
     case 1:
@@ -136,7 +129,7 @@ function fibbo(n) {
 }
 
 const s3 = Date.now();
-const x1 = fibbo(25);
+const x1 = fib2(500, 1, 1);
 const s4 = Date.now() - s3;
 
 console.log("pure js time: ", s4, ", value: " + x1);
