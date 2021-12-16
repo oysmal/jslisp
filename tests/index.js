@@ -1,4 +1,3 @@
-import { l } from "../src/core.js";
 import { jslisp } from "../src/parse.js";
 
 function logDFS(node) {
@@ -101,21 +100,21 @@ function logDFS(node) {
 //   (add (v a) (v b))))
 // (exportf my/add))`);
 
-const fib = jslisp(`(
-(defn my/fib [n last current] (
-    (cond (= (v n) 2)
-      (v current)
-      (my/fib (- (v n) 1) (v current) (+ (v last) (v current))))))
-(exportf my/fib))`);
+const fib = jslisp(`
+(defn my/fib [n last current]
+    (cond (= n 2)
+      current
+      (my/fib (- n 1) current (+ last current))))
+(export my/fib)`);
 
 const s1 = Date.now();
-const x = fib(500, 1, 1);
+const x = fib(1000, 1, 1);
 const s2 = Date.now() - s1;
 console.log("jslisp time: ", s2, ", value: " + x);
 
 function fib2(n, last, current) {
   if (n === 2) return current;
-  return fib(n - 1, current, last + current);
+  return fib2(n - 1, current, last + current);
 }
 
 function slowFib(n) {

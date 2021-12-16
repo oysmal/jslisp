@@ -1,101 +1,81 @@
 import { debugLog, infoLog } from "./Logger.js";
+
 export const JSLispForm = Symbol("jslispForm");
 export const JSLispFormResult = Symbol("jslispFormResult");
 export const JSLispExport = Symbol("JSLispExport");
+export const JSLispFn = Symbol("JSLispFn");
+export const JSLispCond = Symbol("JSLispCond");
+export const JSLispDef = Symbol("JSLispDef");
+export const JSLispVar = Symbol("JSLispVar");
 
 export const globalScope = new Map();
 export const funcScope = new Map();
 
-export function applyForm(scope, form) {
-  debugLog("_____________");
-  if (typeof form === "object" && form?.type === JSLispFormResult) {
-    debugLog("Returning plain value", form.value);
-    return form.value;
-  } else if (typeof form === "object" && form?.type === JSLispForm) {
-    debugLog("FORM: ", form);
-    const appliedForm = applyForm(scope, form.data[0]);
-    const fn = appliedForm.value ?? appliedForm;
+export function interpret(scope, forms) {
+  if (forms === null || forms === undefined || forms[0] !== JSLispForm)
+    return forms;
 
-    if (typeof fn !== "function") {
-      debugLog("not a fn, returning: ", fn.data);
-      return fn;
-    } else if (
-      typeof appliedForm === "object" &&
-      appliedForm?.type === JSLispExport
-    ) {
-      infoLog("Returning an export", appliedForm.value);
-      return appliedForm.value;
-    } else if (fn === cond) {
-      infoLog("Calling cond with args", form.data.slice(1));
-      return cond(scope, ...form.data.slice(1));
-    }
+  switch (forms[1]) {
+    case JSLispVar:
+      return scope.get(forms[2]);
+    case JSLispDef:
+      return interpretDefine(scope, forms);
+    case JSLispCond:
+      return interpretCond(scope, forms);
+    case JSLispFn:
+      return interpretFn(scope, forms);
+    case JSLispExport:
+      return interpretExport(scope, forms);
+    default:
+      return interpretForm(scope, forms);
+  }
+}
 
-    infoLog("this is a function: ", form.data[0]);
-    const args = form.data.slice(1).map((x) => {
-      const appliedItem = applyForm(scope, x);
-      return appliedItem.type === JSLispFormResult
-        ? appliedItem.value
-        : appliedItem;
-    });
-
-    infoLog("ARGS: ", args);
-    const value = fn(scope, ...args);
-
-    return {
-      value,
-      type: JSLispFormResult,
-    };
+function interpretDefine(scope, forms) {
+  if (forms[4] && forms[4][0] === JSLispForm) {
+    scope.set(forms[3][2], interpret(scope, forms[3]));
   } else {
-    debugLog("Else returning: ", form);
-    return form;
+    scope.set(forms[3][2], forms[4]);
   }
-}
-
-export const lf = (...data) => ({
-  type: JSLispForm,
-  data,
-  scope: new Map(),
-});
-
-// Could this just check the first element? Reduce O by n
-function isArrayOfForms(forms) {
-  return (
-    Array.isArray(forms) && forms.length > 0 && forms[0].type === JSLispForm
-  ); // forms.every((x) => x.type === JSLispForm);
-}
-
-export function applyForms(scope, forms) {
-  if (typeof forms !== "object" || !isArrayOfForms(forms)) return forms;
-  debugLog("applyForms", forms);
-
-  for (let i = 0; i < forms.length; i++) {
-    let formResult = null;
-
-    if (isArrayOfForms(forms[i]) && forms[i].length > 0) {
-      formResult = applyForms(scope, forms[i]);
-    } else if (forms[i].type === JSLispForm) {
-      const formData = forms[i].data.map((item) => {
-        const appliedItem = applyForms(scope, item);
-        return appliedItem.type === JSLispFormResult
-          ? appliedItem.value
-          : appliedItem;
-      });
-      formResult = applyForm(scope, { ...forms[i], data: formData });
-    } else {
-      debugLog("ELSE formResult: ", forms[i]);
-      formResult = forms[i];
-    }
-
-    if (i === forms.length - 1) {
-      infoLog("returning form result: ", formResult);
-      return formResult;
-    }
-  }
-  infoLog("Returning null");
   return null;
 }
 
-export const l = (...forms) => applyForms(globalScope, forms);
+function interpretCond(scope, forms) {
+  if (interpret(scope, forms[3])) return interpret(scope, forms[4]);
+  else return interpret(scope, forms[5]);
+}
+
+function interpretFn(surroundingScope, forms) {
+  const scope = new Map();
+  funcScope.set(forms[3][2], (_, ...argList) => {
+    forms[4].forEach((x, i) => {
+      scope.set(x[2], interpret(surroundingScope, argList[i]));
+    });
+    return interpret(scope, [JSLispForm, JSLispForm, ...forms.slice(3)]);
+  });
+}
+
+function interpretExport(scope, forms) {
+  if (funcScope.has(forms[3][2]))
+    return (...args) => funcScope.get(forms[3][2])(scope, ...args);
+  else return scope.get(forms[3][2]);
+}
+
+function interpretForm(scope, forms) {
+  if (!forms || !Array.isArray(forms) || forms[0] !== JSLispForm) return forms;
+  else if (forms[1] === JSLispForm && forms[2] && forms[2][0] === JSLispForm) {
+    for (let i = 2; i < forms.length; i++) {
+      if (i !== forms.length - 1) interpret(scope, forms[i]);
+    }
+    return interpret(scope, forms[forms.length - 1]);
+  } else {
+    if (funcScope.get(forms[2]) === undefined) console.log("UNDEF: ", forms);
+    return funcScope.get(forms[2])(
+      scope,
+      ...forms.slice(3).map(interpret.bind(null, scope))
+    );
+  }
+}
 
 // arithmetic ops
 
@@ -139,78 +119,24 @@ export const map = (scope, collection, lambda) =>
   collection.map((...args) => lambda(...args));
 
 // variables
-export const def = (scope, key, a) => scope.set(key, a);
 export const defg = (_, key, a) => globalScope.set(key, a);
-export const v = (scope, key) => scope.get(key);
 export const g = (_, key) => globalScope.get(key);
-
-// export
-export const exportf = (scope, key) => ({
-  type: JSLispExport,
-  value: (...args) => {
-    const val = funcScope.get(key)(scope, ...args); // unwrap from formResult when exporting
-    if (val.type === JSLispFormResult || val.type === JSLispExport) {
-      return val.value;
-    } else return val;
-  },
-});
-
-export const exportv = (scope, key) => ({
-  type: JSLispExport,
-  value: scope.get(key),
-});
 
 // io
 export const print = (scope, ...args) => console.log(...args);
 
-// functions
-export const defn = (_, key, args, forms) =>
-  funcScope.set(key, (_, ...argList) => {
-    const scope = new Map();
-    args.forEach((x, i) => scope.set(x, argList[i]));
-    return applyForms(scope, forms);
-  });
-
-export const lambda = (scope, args, forms) => {
+export const lambda = (surroundingScope, forms) => {
   return (...argList) => {
-    args.forEach((x, i) => scope.set(x, argList[i]));
-    return applyForms(scope, forms);
+    const scope = new Map();
+    forms[4].forEach((x, i) =>
+      scope.set(x[2], interpret(surroundingScope, argList[i]))
+    );
+    return interpret(scope, [JSLispForm, JSLispForm, ...forms.slice(3)]);
   };
 };
 
-export function cond(scope, ...forms) {
-  const test = applyForm(scope, forms[0]);
-
-  if (forms.length !== 3)
-    throw new SyntaxError(
-      "Wrong number of arguments to function <cond>. It requires 3 arguments. You provided: " +
-        forms.length
-    );
-
-  const testValue = test.type === JSLispFormResult ? test.value : test;
-  if (testValue) {
-    const res = applyForm(scope, forms[1]);
-    if (res.type === JSLispFormResult || res.type === JSLispExport) {
-      return res.value;
-    } else return res;
-  } else {
-    const res = applyForm(scope, forms[2]);
-    if (res.type === JSLispFormResult || res.type === JSLispExport) {
-      return res.value;
-    } else return res;
-  }
-}
-
 export const equals = (scope, ...forms) => {
-  const [a, b] = forms;
-  const appliedA = applyForms(scope, a);
-  const appliedAValue =
-    appliedA.type === JSLispFormResult ? appliedA.value : appliedA;
-  const appliedB = applyForms(scope, b);
-  const appliedBValue =
-    appliedB.type === JSLispFormResult ? appliedB.value : appliedB;
-
-  return appliedAValue === appliedBValue;
+  return interpret(scope, forms[0]) === interpret(scope, forms[1]);
 };
 
 funcScope.set("add", add);
@@ -223,17 +149,11 @@ funcScope.set("div", div);
 funcScope.set("/", div);
 funcScope.set("pow", pow);
 funcScope.set("sqrt", sqrt);
-funcScope.set("def", def);
-funcScope.set("defn", defn);
 funcScope.set("defg", defg);
-funcScope.set("exportf", exportf);
-funcScope.set("exportv", exportv);
-funcScope.set("v", v);
 funcScope.set("g", g);
 funcScope.set("str", str);
 funcScope.set("split", split);
 funcScope.set("print", print);
-funcScope.set("cond", cond);
 funcScope.set("equals", equals);
 funcScope.set("=", equals);
 

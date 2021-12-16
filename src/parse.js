@@ -1,4 +1,12 @@
-import { l, lf, f, def, v, add } from "./core.js";
+import {
+  JSLispCond,
+  JSLispExport,
+  JSLispFn,
+  JSLispDef,
+  JSLispForm,
+  JSLispVar,
+  interpret,
+} from "./core.js";
 
 const Node = "__$NODE__";
 const Closing = "__$CLOSING__";
@@ -47,11 +55,23 @@ function tokenizer(source) {
 }
 
 export function jslisp(source) {
-  return l(parseL2(source).value);
+  return interpret(new Map(), parseL2(source));
 }
+
 function parseL2(source) {
   const tokens = tokenizer(source);
-  return parseLF2(tokens, 0);
+  const progArray = [];
+  let i = 0;
+  let parsed;
+  while (i < tokens.length) {
+    parsed = parseLF2(tokens, i);
+    if (parsed.nextIndex < tokens.length) {
+      progArray.push(parsed.value);
+    }
+    i = parsed.nextIndex;
+  }
+  progArray.push(parsed.value);
+  return [JSLispForm, JSLispForm, ...progArray];
 }
 
 function parseLF2(tokens, index) {
@@ -66,41 +86,27 @@ function parseLF2(tokens, index) {
   }
 
   if (token === "(") {
-    if (tokens[i + 1] === "(") {
-      const args = [];
+    const args = [];
+    const funcName = tokens[i + 1];
+    i += 1;
 
-      let cur = parseLF2(tokens, i + 1);
-      while (cur?.type !== Closing) {
-        args.push(cur.value);
-        i = cur.nextIndex;
-        cur = parseLF2(tokens, i);
-      }
-
+    let cur = parseLF2(tokens, i + 1);
+    while (cur?.type !== Closing) {
+      args.push(cur.value);
       i = cur.nextIndex;
-      return { nextIndex: i, value: lf(args) };
-    } else {
-      const args = [];
-      const funcName = tokens[i + 1];
-      i += 1;
-
-      let cur = parseLF2(tokens, i + 1);
-      while (cur?.type !== Closing) {
-        args.push(cur.value);
-        i = cur.nextIndex;
-        cur = parseLF2(tokens, i);
-      }
-
-      if (cur.value !== undefined) {
-        args.push(cur.value);
-      }
-
-      i = cur.nextIndex;
-
-      return {
-        nextIndex: i,
-        value: lf(lf(f, funcName), ...args),
-      };
+      cur = parseLF2(tokens, i);
     }
+
+    if (cur.value !== undefined) {
+      args.push(cur.value);
+    }
+
+    i = cur.nextIndex;
+
+    return {
+      nextIndex: i,
+      value: [JSLispForm, getSymbolName(funcName), funcName, ...args],
+    };
   } else if (token === "[") {
     const array = [];
     let cur = parseLF2(tokens, i + 1);
@@ -127,6 +133,53 @@ function parseLF2(tokens, index) {
   } else if (token.match(/[0-9\-\+\.]+/)) {
     return { nextIndex: i + 1, value: parseFloat(token) };
   } else {
-    return { nextIndex: i + 1, value: token };
+    return { nextIndex: i + 1, value: [JSLispForm, JSLispVar, token] };
   }
 }
+
+function getSymbolName(funcName) {
+  switch (funcName) {
+    case "cond":
+      return JSLispCond;
+    case "def":
+      return JSLispDef;
+    case "defn":
+      return JSLispFn;
+    case "export":
+      return JSLispExport;
+    default:
+      return JSLispForm;
+  }
+}
+
+// console.log(
+//   interpret(
+//     new Map(),
+//     parseL2(`
+// (def x 15)
+// (cond (= x 12) x (+ 3 3))
+// `)
+//   )
+// );
+
+// // console.log(
+// //   interpret(
+// //     new Map(),
+// //     parseL2(`
+// // (defn my/test [x y] (cond (= x y) (+ x y) (my/test (- x 1) (- x 1))))
+// // (my/test 5 10)
+// // `)
+// //   )
+// // );
+
+// console.log(
+//   interpret(
+//     new Map(),
+//     parseL2(`
+// (defn my/fib [n last current]
+//     (cond (= n 2)
+//       current
+//       (my/fib (- n 1) current (+ last current))))
+// (my/fib 25 1 1)`)
+//   )
+// );
