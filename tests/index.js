@@ -133,3 +133,22 @@ const x1 = fib2(500, 1, 1);
 const s4 = Date.now() - s3;
 
 console.log("pure js time: ", s4, ", value: " + x1);
+
+const s5 = Date.now();
+let current = 0;
+let last = 0;
+
+for (let i = 1; i <= 150000; i++) {
+  if (i == 1) {
+    current = 1;
+    last = 0;
+    continue;
+  }
+  const nextcalc = last + current;
+  last = current;
+  current = nextcalc;
+}
+
+const s6 = Date.now() - s5;
+
+console.log("JS loop time: ", s6, ", value: ", current);
