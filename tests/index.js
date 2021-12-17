@@ -109,27 +109,15 @@ function logDFS(node) {
 
 const fib = jslisp(`
 (defn my/fib [n]
-    (print (str "n is " n))
     (cond (<= n 1)
-      (progn (print "returning " n) n)
+      n
       (+
-        (my/fib (progn (print (str "IS 1: " n)) (- n 1)))
-        (my/fib (progn (print (str "IS 2: " n)) (- n 2))))))
+        (my/fib (- n 1))
+        (my/fib (- n 2)))))
 (export my/fib)`);
 
-jslisp(`
-(defn test [n]
-  (cond (<= n 1)
-    n
-    (* n (test (- n 1)))))
-(print "_____________")
-(print (test 5))
-(print (test 2))
-(print "_____________")
-`);
-
 const s1 = Date.now();
-const x = fib(2);
+const x = fib(25);
 const s2 = Date.now() - s1;
 console.log("jslisp time: ", s2, ", value: " + x);
 
@@ -139,17 +127,12 @@ function fib2(n, last, current) {
 }
 
 function slowFib(n) {
-  switch (n) {
-    case 0:
-    case 1:
-      return n;
-    default:
-      return fibbo(n - 1) + fibbo(n - 2);
-  }
+  if (n <= 1) return n;
+  else return slowFib(n - 1) + slowFib(n - 2);
 }
 
 const s3 = Date.now();
-const x1 = fib2(500, 1, 1);
+const x1 = slowFib(25); //, 1, 1);
 const s4 = Date.now() - s3;
 
 console.log("pure js time: ", s4, ", value: " + x1);

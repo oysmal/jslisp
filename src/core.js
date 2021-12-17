@@ -46,26 +46,17 @@ function interpretCond(scope, forms) {
   if (test) {
     return interpret(scope, forms[4]);
   } else {
-    // debugLog("Exec false: ", forms[5]);
     return interpret(scope, forms[5]);
   }
 }
 
 function interpretFn(surroundingScope, forms) {
-  const scope = new Map();
   funcScope.set(forms[3][2], (_, ...argList) => {
-    forms[4].forEach((x, i) => {
-      scope.set(x[2], interpret(surroundingScope, argList[i]));
-    });
-    // if (argList[0] === 1) {
-    //   debugLog(
-    //     "forms",
-    //     interpret(scope, [JSLispForm, JSLispForm, ...forms.slice(3)])
-    //   );
-    // }
-    const res = interpret(scope, [JSLispForm, JSLispForm, ...forms.slice(3)]);
-    // debugLog("Returning from fn ", forms[3], ": ", res);
-    return res;
+    const scope = new Map();
+    for (let i = 0; i < forms[4].length; i++) {
+      scope.set(forms[4][i][2], interpret(surroundingScope, argList[i]));
+    }
+    return interpret(scope, [JSLispForm, JSLispForm, ...forms.slice(3)]);
   });
 }
 
@@ -96,7 +87,6 @@ function interpretForm(scope, forms) {
 }
 
 // arithmetic ops
-
 export const add = (scope, ...args) => {
   let sum = args[0];
   for (let i = 1; i < args.length; i++) {
@@ -144,6 +134,24 @@ export const g = (_, key) => globalScope.get(key);
 // io
 export const print = (scope, ...args) => console.log(...args);
 
+// comparators
+export const equals = (scope, ...forms) => {
+  return interpret(scope, forms[0]) === interpret(scope, forms[1]);
+};
+export const lessThan = (scope, ...forms) => {
+  return interpret(scope, forms[0]) < interpret(scope, forms[1]);
+};
+export const lessThanEquals = (scope, ...forms) => {
+  return interpret(scope, forms[0]) <= interpret(scope, forms[1]);
+};
+export const greaterThan = (scope, ...forms) => {
+  return interpret(scope, forms[0]) > interpret(scope, forms[1]);
+};
+export const greaterThanEquals = (scope, ...forms) => {
+  return interpret(scope, forms[0]) >= interpret(scope, forms[1]);
+};
+
+// code, execution
 export const lambda = (surroundingScope, forms) => {
   return (...argList) => {
     const scope = new Map();
@@ -153,27 +161,6 @@ export const lambda = (surroundingScope, forms) => {
     return interpret(scope, [JSLispForm, JSLispForm, ...forms.slice(3)]);
   };
 };
-
-export const equals = (scope, ...forms) => {
-  return interpret(scope, forms[0]) === interpret(scope, forms[1]);
-};
-
-export const lessThan = (scope, ...forms) => {
-  return interpret(scope, forms[0]) < interpret(scope, forms[1]);
-};
-
-export const lessThanEquals = (scope, ...forms) => {
-  return interpret(scope, forms[0]) <= interpret(scope, forms[1]);
-};
-
-export const greaterThan = (scope, ...forms) => {
-  return interpret(scope, forms[0]) > interpret(scope, forms[1]);
-};
-
-export const greaterThanEquals = (scope, ...forms) => {
-  return interpret(scope, forms[0]) >= interpret(scope, forms[1]);
-};
-
 export const progn = (scope, ...forms) => {
   for (let i = 0; i < forms.length - 1; i++) {
     interpret(scope, forms[i]);
