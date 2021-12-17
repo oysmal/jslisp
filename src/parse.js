@@ -151,35 +151,3 @@ function getSymbolName(funcName) {
       return JSLispForm;
   }
 }
-
-// console.log(
-//   interpret(
-//     new Map(),
-//     parseL2(`
-// (def x 15)
-// (cond (= x 12) x (+ 3 3))
-// `)
-//   )
-// );
-
-// // console.log(
-// //   interpret(
-// //     new Map(),
-// //     parseL2(`
-// // (defn my/test [x y] (cond (= x y) (+ x y) (my/test (- x 1) (- x 1))))
-// // (my/test 5 10)
-// // `)
-// //   )
-// // );
-
-// console.log(
-//   interpret(
-//     new Map(),
-//     parseL2(`
-// (defn my/fib [n last current]
-//     (cond (= n 2)
-//       current
-//       (my/fib (- n 1) current (+ last current))))
-// (my/fib 25 1 1)`)
-//   )
-// );

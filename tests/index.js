@@ -100,15 +100,36 @@ function logDFS(node) {
 //   (add (v a) (v b))))
 // (exportf my/add))`);
 
+// const fib = jslisp(`
+// (defn my/fib [n last current]
+//     (cond (= n 2)
+//       current
+//       (my/fib (- n 1) current (+ last current))))
+// (export my/fib)`);
+
 const fib = jslisp(`
-(defn my/fib [n last current]
-    (cond (= n 2)
-      current
-      (my/fib (- n 1) current (+ last current))))
+(defn my/fib [n]
+    (print (str "n is " n))
+    (cond (<= n 1)
+      (progn (print "returning " n) n)
+      (+
+        (my/fib (progn (print (str "IS 1: " n)) (- n 1)))
+        (my/fib (progn (print (str "IS 2: " n)) (- n 2))))))
 (export my/fib)`);
 
+jslisp(`
+(defn test [n]
+  (cond (<= n 1)
+    n
+    (* n (test (- n 1)))))
+(print "_____________")
+(print (test 5))
+(print (test 2))
+(print "_____________")
+`);
+
 const s1 = Date.now();
-const x = fib(1000, 1, 1);
+const x = fib(2);
 const s2 = Date.now() - s1;
 console.log("jslisp time: ", s2, ", value: " + x);
 

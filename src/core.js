@@ -41,8 +41,14 @@ function interpretDefine(scope, forms) {
 }
 
 function interpretCond(scope, forms) {
-  if (interpret(scope, forms[3])) return interpret(scope, forms[4]);
-  else return interpret(scope, forms[5]);
+  const test = interpret(scope, forms[3]);
+
+  if (test) {
+    return interpret(scope, forms[4]);
+  } else {
+    // debugLog("Exec false: ", forms[5]);
+    return interpret(scope, forms[5]);
+  }
 }
 
 function interpretFn(surroundingScope, forms) {
@@ -51,7 +57,15 @@ function interpretFn(surroundingScope, forms) {
     forms[4].forEach((x, i) => {
       scope.set(x[2], interpret(surroundingScope, argList[i]));
     });
-    return interpret(scope, [JSLispForm, JSLispForm, ...forms.slice(3)]);
+    // if (argList[0] === 1) {
+    //   debugLog(
+    //     "forms",
+    //     interpret(scope, [JSLispForm, JSLispForm, ...forms.slice(3)])
+    //   );
+    // }
+    const res = interpret(scope, [JSLispForm, JSLispForm, ...forms.slice(3)]);
+    // debugLog("Returning from fn ", forms[3], ": ", res);
+    return res;
   });
 }
 
@@ -62,14 +76,18 @@ function interpretExport(scope, forms) {
 }
 
 function interpretForm(scope, forms) {
-  if (!forms || !Array.isArray(forms) || forms[0] !== JSLispForm) return forms;
-  else if (forms[1] === JSLispForm && forms[2] && forms[2][0] === JSLispForm) {
+  if (!forms || !Array.isArray(forms) || forms[0] !== JSLispForm) {
+    return forms;
+  } else if (
+    forms[1] === JSLispForm &&
+    forms[2] &&
+    forms[2][0] === JSLispForm
+  ) {
     for (let i = 2; i < forms.length; i++) {
       if (i !== forms.length - 1) interpret(scope, forms[i]);
     }
     return interpret(scope, forms[forms.length - 1]);
   } else {
-    if (funcScope.get(forms[2]) === undefined) console.log("UNDEF: ", forms);
     return funcScope.get(forms[2])(
       scope,
       ...forms.slice(3).map(interpret.bind(null, scope))
@@ -86,6 +104,7 @@ export const add = (scope, ...args) => {
   }
   return sum;
 };
+
 export const sub = (scope, ...args) => {
   let sum = args[0];
   for (let i = 1; i < args.length; i++) {
@@ -139,6 +158,30 @@ export const equals = (scope, ...forms) => {
   return interpret(scope, forms[0]) === interpret(scope, forms[1]);
 };
 
+export const lessThan = (scope, ...forms) => {
+  return interpret(scope, forms[0]) < interpret(scope, forms[1]);
+};
+
+export const lessThanEquals = (scope, ...forms) => {
+  return interpret(scope, forms[0]) <= interpret(scope, forms[1]);
+};
+
+export const greaterThan = (scope, ...forms) => {
+  return interpret(scope, forms[0]) > interpret(scope, forms[1]);
+};
+
+export const greaterThanEquals = (scope, ...forms) => {
+  return interpret(scope, forms[0]) >= interpret(scope, forms[1]);
+};
+
+export const progn = (scope, ...forms) => {
+  for (let i = 0; i < forms.length - 1; i++) {
+    interpret(scope, forms[i]);
+  }
+  return interpret(scope, forms[forms.length - 1]);
+};
+
+funcScope.set("progn", progn);
 funcScope.set("add", add);
 funcScope.set("+", add);
 funcScope.set("mult", mult);
@@ -156,5 +199,9 @@ funcScope.set("split", split);
 funcScope.set("print", print);
 funcScope.set("equals", equals);
 funcScope.set("=", equals);
+funcScope.set("<", lessThan);
+funcScope.set("<=", lessThanEquals);
+funcScope.set(">", greaterThan);
+funcScope.set(">=", greaterThanEquals);
 
 export const f = (_, key) => funcScope.get(key);

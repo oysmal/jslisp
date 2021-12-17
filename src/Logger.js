@@ -12,7 +12,7 @@ if (process?.env?.LOG_LEVEL) {
 
 export function debugLog(msg, ...args) {
   if (logLevel >= LogLevel.DEBUG) {
-    console.log(msg, ...args);
+    console.log("_____________________\n", msg, ...args);
   }
 }
 
