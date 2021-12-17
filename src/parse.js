@@ -6,6 +6,7 @@ import {
   JSLispForm,
   JSLispVar,
   interpret,
+  globalScope,
 } from "./core.js";
 
 const Node = "__$NODE__";
@@ -55,7 +56,7 @@ function tokenizer(source) {
 }
 
 export function jslisp(source) {
-  return interpret(new Map(), parseL2(source));
+  return interpret(globalScope, parseL2(source));
 }
 
 function parseL2(source) {
