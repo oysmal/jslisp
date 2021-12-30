@@ -155,3 +155,14 @@ for (let i = 1; i <= 150000; i++) {
 const s6 = Date.now() - s5;
 
 console.log("JS loop time: ", s6, ", value: ", current);
+
+console.log(
+  jslisp(`
+(+ 5 (js Math.floor (* (js Math.random) 5)))
+`)
+);
+
+function addme(a, b) {
+  return a + b + a + b;
+}
+console.log(jslisp(`(js addme 2 3)`, { addme }));

@@ -5,6 +5,7 @@ import {
   JSLispDef,
   JSLispForm,
   JSLispVar,
+  JSLispJS,
   interpret,
   globalScope,
 } from "./core.js";
@@ -55,7 +56,8 @@ function tokenizer(source) {
   return tokens;
 }
 
-export function jslisp(source) {
+export function jslisp(source, jsDeps) {
+  globalScope.c.set("jsDeps", jsDeps);
   return interpret(globalScope, parseL2(source));
 }
 
@@ -90,6 +92,11 @@ function parseLF2(tokens, index) {
     const args = [];
     const funcName = tokens[i + 1];
     i += 1;
+
+    if (funcName === "js") {
+      args.push(tokens[i + 1]);
+      i += 1;
+    }
 
     let cur = parseLF2(tokens, i + 1);
     while (cur?.type !== Closing) {
@@ -148,6 +155,8 @@ function getSymbolName(funcName) {
       return JSLispFn;
     case "export":
       return JSLispExport;
+    case "js":
+      return JSLispJS;
     default:
       return JSLispForm;
   }

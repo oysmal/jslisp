@@ -5,6 +5,7 @@ export const JSLispFn = Symbol("JSLispFn");
 export const JSLispCond = Symbol("JSLispCond");
 export const JSLispDef = Symbol("JSLispDef");
 export const JSLispVar = Symbol("JSLispVar");
+export const JSLispJS = Symbol("JSLispJS");
 
 export const globalScope = newScope(null);
 
@@ -37,6 +38,8 @@ export function interpret(scope, forms) {
       return interpretFn(scope, forms);
     case JSLispExport:
       return interpretExport(scope, forms);
+    case JSLispJS:
+      return interpretJS(scope, forms);
     default:
       return interpretForm(scope, forms);
   }
@@ -91,6 +94,21 @@ function interpretForm(scope, forms) {
       ...forms.slice(3).map(interpret.bind(null, scope))
     );
   }
+}
+
+function interpretJS(scope, forms) {
+  const funcPath = forms[3].split(".");
+  const args = forms.slice(4).map((x) => interpret(scope, x));
+  let func =
+    globalScope.c.get("jsDeps") && globalScope.c.get("jsDeps")[funcPath[0]]
+      ? globalScope.c.get("jsDeps")[funcPath[0]]
+      : eval(funcPath[0]);
+
+  for (let i = 1; i < funcPath.length; i++) {
+    func = func[funcPath[i]];
+  }
+  if (!(func instanceof Function)) return func;
+  return func(...args);
 }
 
 /// STDLIB
