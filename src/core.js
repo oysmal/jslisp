@@ -6,6 +6,7 @@ export const JSLispCond = Symbol("JSLispCond");
 export const JSLispDef = Symbol("JSLispDef");
 export const JSLispVar = Symbol("JSLispVar");
 export const JSLispJS = Symbol("JSLispJS");
+export const JSLispSymbol = Symbol("JSLispSymbol");
 
 export const globalScope = newScope(null);
 
@@ -40,6 +41,8 @@ export function interpret(scope, forms) {
       return interpretExport(scope, forms);
     case JSLispJS:
       return interpretJS(scope, forms);
+    case JSLispSymbol:
+      return forms[2];
     default:
       return interpretForm(scope, forms);
   }
@@ -195,6 +198,12 @@ export const progn = (scope, ...forms) => {
   return interpret(scope, forms[forms.length - 1]);
 };
 
+// Objects
+export const get = (scope, ...forms) => {
+  const key = forms[0].charAt(0) === ":" ? forms[0].slice(1) : forms[0];
+  return interpret(scope, forms[1])[key];
+};
+
 globalScope.c.set("progn", progn);
 globalScope.c.set("add", add);
 globalScope.c.set("+", add);
@@ -217,3 +226,4 @@ globalScope.c.set("<", lessThan);
 globalScope.c.set("<=", lessThanEquals);
 globalScope.c.set(">", greaterThan);
 globalScope.c.set(">=", greaterThanEquals);
+globalScope.c.set("get", get);

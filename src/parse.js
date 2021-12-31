@@ -6,6 +6,7 @@ import {
   JSLispForm,
   JSLispVar,
   JSLispJS,
+  JSLispSymbol,
   interpret,
   globalScope,
 } from "./core.js";
@@ -140,6 +141,8 @@ function parseLF2(tokens, index) {
     return { nextIndex: i + 1, value: token === "true" ? true : false };
   } else if (token.match(/[0-9\-\+\.]+/)) {
     return { nextIndex: i + 1, value: parseFloat(token) };
+  } else if (token.charAt(0) === ":") {
+    return { nextIndex: i + 1, value: [JSLispForm, JSLispSymbol, token] };
   } else {
     return { nextIndex: i + 1, value: [JSLispForm, JSLispVar, token] };
   }

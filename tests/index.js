@@ -156,13 +156,18 @@ const s6 = Date.now() - s5;
 
 console.log("JS loop time: ", s6, ", value: ", current);
 
+// Testing using js function / accessing js objects
 console.log(
   jslisp(`
 (+ 5 (js Math.floor (* (js Math.random) 5)))
 `)
 );
 
+// Testing adding external dependencies from current scope
 function addme(a, b) {
   return a + b + a + b;
 }
 console.log(jslisp(`(js addme 2 3)`, { addme }));
+
+// Testing get from object
+console.log(jslisp(`(get :random (js Math))`));
