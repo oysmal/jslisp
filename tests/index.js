@@ -107,6 +107,7 @@ function logDFS(node) {
 //       (my/fib (- n 1) current (+ last current))))
 // (export my/fib)`);
 
+/*
 const fib = jslisp(`
 (defn my/fib [n]
     (cond (<= n 1)
@@ -160,14 +161,35 @@ console.log("JS loop time: ", s6, ", value: ", current);
 console.log(
   jslisp(`
 (+ 5 (js Math.floor (* (js Math.random) 5)))
-`)
+`),
 );
 
 // Testing adding external dependencies from current scope
 function addme(a, b) {
   return a + b + a + b;
 }
+
 console.log(jslisp(`(js addme 2 3)`, { addme }));
 
 // Testing get from object
 console.log(jslisp(`(get :random (js Math))`));
+
+*/
+
+// Testing get from object
+
+console.log(
+  jslisp(`
+(use
+  :testFn "../tests/example-export.js")
+
+
+(defg timeout (get :setTimeout (js global)))
+(defg test (lambda test [] (
+  (def x (get :sayHello testFn))
+  (x "World"))))
+
+(print test)
+(timeout (get test) 400)
+`),
+);

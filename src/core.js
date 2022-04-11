@@ -7,13 +7,18 @@ export const JSLispDef = Symbol("JSLispDef");
 export const JSLispVar = Symbol("JSLispVar");
 export const JSLispJS = Symbol("JSLispJS");
 export const JSLispSymbol = Symbol("JSLispSymbol");
+export const JSLispImport = Symbol("JSLispImport");
 
-export const globalScope = newScope(null);
+export const globalScope = newChildScope(null);
 
 // Scoping
-function newScope(curScope) {
+// p = parent, c = current
+// call with null to create root scope
+function newChildScope(curScope) {
   return { p: curScope, c: new Map() };
 }
+
+// Recursively search through all scopes from innermost up to root scope
 function findInScope(curScope, key) {
   let scope = curScope;
   while (scope.p) {
@@ -43,6 +48,8 @@ export function interpret(scope, forms) {
       return interpretJS(scope, forms);
     case JSLispSymbol:
       return forms[2];
+    case JSLispImport:
+      return interpretImport(scope, forms);
     default:
       return interpretForm(scope, forms);
   }
@@ -69,7 +76,7 @@ function interpretCond(scope, forms) {
 
 function interpretFn(surroundingScope, forms) {
   surroundingScope.c.set(forms[3][2], (_, ...argList) => {
-    const scope = newScope(surroundingScope);
+    const scope = newChildScope(surroundingScope);
     for (let i = 0; i < forms[4].length; i++) {
       scope.c.set(forms[4][i][2], interpret(surroundingScope, argList[i]));
     }
@@ -92,10 +99,13 @@ function interpretForm(scope, forms) {
     }
     return interpret(scope, forms[forms.length - 1]);
   } else {
-    return findInScope(scope, forms[2])(
-      scope,
-      ...forms.slice(3).map(interpret.bind(null, scope))
-    );
+    const fn = findInScope(scope, forms[2]);
+    if (fn) {
+      return fn(scope, ...forms.slice(3).map(interpret.bind(null, scope)));
+    } else {
+      console.error("ERROR! Function not found in scope");
+      console.log(forms);
+    }
   }
 }
 
@@ -112,6 +122,20 @@ function interpretJS(scope, forms) {
   }
   if (!(func instanceof Function)) return func;
   return func(...args);
+}
+
+// imports
+export function interpretImport(scope, forms) {
+  for (let i = 3; i < forms.length - 1; i += 2) {
+    const varName = forms[i][2];
+    console.log("varname", varName);
+    console.log("import path", forms[i + 1]);
+    import(forms[i + 1]).then((val) => {
+      console.log("IMPORT");
+      console.log("Imported", val);
+      scope.c.set(varName, val);
+    });
+  }
 }
 
 /// STDLIB
@@ -132,6 +156,7 @@ export const sub = (_, ...args) => {
   }
   return sum;
 };
+
 export const mult = (_, ...args) => {
   let sum = args[0];
   for (let i = 1; i < args.length; i++) {
@@ -139,6 +164,7 @@ export const mult = (_, ...args) => {
   }
   return sum;
 };
+
 export const div = (_, ...args) => {
   let sum = args[0];
   for (let i = 1; i < args.length; i++) {
@@ -184,13 +210,14 @@ export const greaterThanEquals = (scope, ...forms) => {
 // code, execution
 export const lambda = (surroundingScope, forms) => {
   return (...argList) => {
-    const scope = newScope(surroundingScope);
+    const scope = newChildScope(surroundingScope);
     forms[4].forEach((x, i) =>
-      scope.c.set(x[2], interpret(surroundingScope, argList[i]))
+      scope.c.set(x[2], interpret(surroundingScope, argList[i])),
     );
     return interpret(scope, [JSLispForm, JSLispForm, ...forms.slice(3)]);
   };
 };
+
 export const progn = (scope, ...forms) => {
   for (let i = 0; i < forms.length - 1; i++) {
     interpret(scope, forms[i]);
@@ -227,3 +254,4 @@ globalScope.c.set("<=", lessThanEquals);
 globalScope.c.set(">", greaterThan);
 globalScope.c.set(">=", greaterThanEquals);
 globalScope.c.set("get", get);
+globalScope.c.set("lambda", lambda);

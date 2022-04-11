@@ -9,6 +9,7 @@ import {
   JSLispSymbol,
   interpret,
   globalScope,
+  JSLispImport,
 } from "./core.js";
 
 const Node = "__$NODE__";
@@ -94,6 +95,9 @@ function parseLF2(tokens, index) {
     const funcName = tokens[i + 1];
     i += 1;
 
+    // When the funcName is js, we know the next
+    // form entry is the js construct, so we should not parse it
+    // (as it will not be a string or a symbol)
     if (funcName === "js") {
       args.push(tokens[i + 1]);
       i += 1;
@@ -160,6 +164,8 @@ function getSymbolName(funcName) {
       return JSLispExport;
     case "js":
       return JSLispJS;
+    case "use":
+      return JSLispImport;
     default:
       return JSLispForm;
   }
