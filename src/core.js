@@ -128,16 +128,23 @@ function interpretJS(scope, forms) {
 
 // imports
 export function interpretImport(scope, forms) {
-  for (let i = 3; i < forms.length - 1; i += 2) {
-    const varName = forms[i][2];
-    console.log("varname", varName);
-    console.log("import path", forms[i + 1]);
-    import(forms[i + 1]).then((val) => {
-      console.log("IMPORT");
-      console.log("Imported", val);
+  const body = forms.slice(forms.length - 1)[0];
+  const items = forms.slice(3, forms.length - 1);
+  const pairedItems = items.reduce((acc, cur, i) => {
+    if (i % 2 !== 0) {
+      acc.push([items[i - 1], cur]);
+    }
+    return acc;
+  }, []);
+  Promise.all(
+    pairedItems.map(async ([varNameForm, importForm]) => {
+      const varName = varNameForm[2];
+      const val = await import(importForm);
       scope.c.set(varName, val);
-    });
-  }
+    })
+  ).then(() => {
+    interpret(scope, body);
+  });
 }
 
 /// STDLIB
@@ -231,8 +238,13 @@ export const progn = (scope, ...forms) => {
 
 // Objects
 export const get = (scope, ...forms) => {
-  const key = forms[0].charAt(0) === ":" ? forms[0].slice(1) : forms[0];
-  return interpret(scope, forms[1])[key];
+  const key = forms[0].charAt(0) === ':' ? forms[0].slice(1) : forms[0];
+  const obj = interpret(scope, forms[1]);
+  let val = obj[key];
+  if (val instanceof Function) {
+    val = (_, ...args) => obj[key](...args);
+  }
+  return val;
 };
 
 globalScope.c.set("progn", progn);
