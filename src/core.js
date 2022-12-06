@@ -1,3 +1,4 @@
+import process from "process";
 export const JSLispForm = Symbol("jslispForm");
 export const JSLispFormResult = Symbol("jslispFormResult");
 export const JSLispExport = Symbol("JSLispExport");
@@ -10,6 +11,8 @@ export const JSLispSymbol = Symbol("JSLispSymbol");
 export const JSLispImport = Symbol("JSLispImport");
 
 export const globalScope = newChildScope(null);
+
+const STDLIB = new Set();
 
 // Scoping
 // p = parent, c = current
@@ -103,7 +106,12 @@ function interpretForm(scope, forms) {
     if (fn) {
       if (fn.lazyEval) return fn(scope, forms);
       const args = forms.slice(3).map(form => interpret(scope, form));
-      return fn(scope, ...args);
+      if (STDLIB.has(fn)) {
+        return fn(scope, ...args);
+      } else {
+        const scopeExtractedArgs = args.map(arg => arg instanceof Function ? (...args) => arg(scope, ...args) : arg)
+        return fn(scope, ...scopeExtractedArgs)
+      }
     } else {
       console.error("ERROR! Function not found in scope");
       console.log(forms);
@@ -139,6 +147,7 @@ export function interpretImport(scope, forms) {
   Promise.all(
     pairedItems.map(async ([varNameForm, importForm]) => {
       const varName = varNameForm[2];
+      console.log("Importing from", process.cwd());
       const val = await import(importForm);
       scope.c.set(varName, val);
     })
@@ -192,9 +201,22 @@ export const split = (_, str, expr) => str.split(expr);
 export const map = (_, collection, lambda) =>
   collection.map((...args) => lambda(...args));
 
+export const reduce = (_, collection, initialValue, lambda) =>
+  collection.reduce((...args) => lambda(...args), initialValue);
+
 // variables
-export const defg = (_, key, a) => globalScope.c.set(key, a);
-export const g = (_, key) => globalScope.c.get(key);
+export const defg = (scope, forms) => {
+  const key = forms[3][2];
+  const value = interpret(scope, forms[4]);
+  return globalScope.c.set(key, value);
+}
+defg.lazyEval = true;
+
+export const g = (_, forms) => {
+  const key = forms[3][2];
+  return globalScope.c.get(key);
+}
+g.lazyEval = true;
 
 // io
 export const print = (_, ...args) => console.log(...args);
@@ -215,6 +237,22 @@ export const greaterThan = (scope, ...forms) => {
 export const greaterThanEquals = (scope, ...forms) => {
   return interpret(scope, forms[0]) >= interpret(scope, forms[1]);
 };
+
+// conditionals
+
+export const cond = (scope, ...forms) => {
+  const test = forms[3];
+  const caseTrue = forms[4]
+  const caseFalse = forms[5]
+
+  const value = interpret(scope, forms[3]);
+  if (value) {
+    return interpret(scope, caseTrue);
+  } else {
+    return interpret(scope, caseFalse);
+  }
+}
+cond.lazyEval = true;
 
 // code, execution
 export const lambda = (surroundingScope, forms) => {
@@ -247,6 +285,10 @@ export const get = (scope, ...forms) => {
   return val;
 };
 
+
+[progn, cond, add, mult, sub, div, pow, sqrt, defg, g, str, split, print, equals, lessThan, lessThanEquals, greaterThan, greaterThanEquals, get, lambda, map, reduce]
+.forEach(item => STDLIB.add(item))
+
 globalScope.c.set("progn", progn);
 globalScope.c.set("add", add);
 globalScope.c.set("+", add);
@@ -269,5 +311,8 @@ globalScope.c.set("<", lessThan);
 globalScope.c.set("<=", lessThanEquals);
 globalScope.c.set(">", greaterThan);
 globalScope.c.set(">=", greaterThanEquals);
+globalScope.c.set("cond", cond);
 globalScope.c.set("get", get);
+globalScope.c.set("map", map);
+globalScope.c.set("reduce", reduce);
 globalScope.c.set("lambda", lambda);
