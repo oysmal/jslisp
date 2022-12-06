@@ -178,18 +178,43 @@ console.log(jslisp(`(get :random (js Math))`));
 
 // Testing get from object
 
-console.log(
-  jslisp(`
-(use
-  :testFn "../tests/example-export.js")
+// console.log(
+//   jslisp(`
+// (use
+//   :testFn "../tests/example-export.js")
 
+// (defg timeout (get :setTimeout (js global)))
+// (defg test (lambda test [] (
+//   (def x (get :sayHello testFn))
+//   (x "World"))))
 
-(defg timeout (get :setTimeout (js global)))
-(defg test (lambda test [] (
-  (def x (get :sayHello testFn))
-  (x "World"))))
+// (print test)
+// (timeout (get test) 400)
+// `),
+// );
 
-(print test)
-(timeout (get test) 400)
-`),
-);
+// jslisp(`
+// (use
+//   testModule "../tests/example-export.js" (progn 
+//     (def x (get :sayHello testModule))
+//     (x "World")
+//   ))
+// `)
+
+// jslisp(`
+//     (def my/print (lambda [greeting name] (progn (print greeting name))))
+//     (print "World")
+//     (my/print "Hello" "Øystein")
+// `)
+
+jslisp(`
+(use testModule "../tests/example-export.js"
+  (progn 
+    (def x (get :sayHello testModule))
+    (def timeout (get :setTimeout (js global)))
+    (timeout
+      (lambda [] (progn
+        (x "Øystein")))
+      200)
+    (x "World")))
+`)
