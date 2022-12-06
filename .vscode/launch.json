@@ -12,6 +12,15 @@
         "<node_internals>/**"
       ],
       "program": "${workspaceFolder}/tests/index.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug day1 aoc2022",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/tests/aoc2022/day1/part1.js"
     }
   ]
 }
