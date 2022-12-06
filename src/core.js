@@ -101,7 +101,9 @@ function interpretForm(scope, forms) {
   } else {
     const fn = findInScope(scope, forms[2]);
     if (fn) {
-      return fn(scope, ...forms.slice(3).map(interpret.bind(null, scope)));
+      if (fn.lazyEval) return fn(scope, forms);
+      const args = forms.slice(3).map(form => interpret(scope, form));
+      return fn(scope, ...args);
     } else {
       console.error("ERROR! Function not found in scope");
       console.log(forms);
@@ -209,14 +211,16 @@ export const greaterThanEquals = (scope, ...forms) => {
 
 // code, execution
 export const lambda = (surroundingScope, forms) => {
-  return (...argList) => {
+  return (_, ...argList) => {
     const scope = newChildScope(surroundingScope);
-    forms[4].forEach((x, i) =>
-      scope.c.set(x[2], interpret(surroundingScope, argList[i])),
-    );
-    return interpret(scope, [JSLispForm, JSLispForm, ...forms.slice(3)]);
+    forms[3].forEach((x, i) => {
+      const arg = interpret(surroundingScope, argList[i])
+      scope.c.set(x[2], arg)
+    });
+    return interpret(scope, forms[4]);
   };
 };
+lambda.lazyEval = true;
 
 export const progn = (scope, ...forms) => {
   for (let i = 0; i < forms.length - 1; i++) {
