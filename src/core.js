@@ -57,7 +57,7 @@ export function interpret(scope, forms) {
 
 function interpretDefine(scope, forms) {
   if (forms[4] && forms[4][0] === JSLispForm) {
-    scope.c.set(forms[3][2], interpret(scope, forms[3]));
+    scope.c.set(forms[3][2], interpret(scope, forms[4]));
   } else {
     scope.c.set(forms[3][2], forms[4]);
   }
