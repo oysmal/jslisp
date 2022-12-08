@@ -27,24 +27,21 @@ jslisp(`
     (def readLine (get :readLineByLine readLineModule))
     (defg longest 0)
     (defg list [])
-    (def push (get :push (g list)))
     (def parseInt (get :parseInt (js global)))
-    (def handleLine
-      (lambda [line]
+    (defn handleLine [line]
         (progn
           (cond (= (get :length line) 0)
-            (progn (
-              (def cals (reduce list 0 (lambda [acc, cur] (acc + cur))))
+            (progn
+              (def cals (reduce list 0 (lambda [acc cur] (+ acc cur))))
               (defg list [])
-              (cond (> cals (g longest)) (defg longest cals) (defg longest (g longest)))
-            ))
-            (progn (
-              (push (parseInt line))
-            )))
-        )))
-    (def onComplete 
-      (lambda [] 
+              (cond (> cals (g longest))
+                (defg longest cals)
+                (defg longest (g longest))))
+            (progn 
+              (def push (get :push (g list)))
+              (push (parseInt line))))))
+    (defn onComplete []
         (progn 
-          (print "Longest: " (g longest)))))
+          (print "Longest: " (g longest))))
     (readLine "./calories.txt" handleLine onComplete)))
 `)
