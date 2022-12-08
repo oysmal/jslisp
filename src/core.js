@@ -201,8 +201,9 @@ export const split = (_, str, expr) => str.split(expr);
 export const map = (_, collection, lambda) =>
   collection.map((...args) => lambda(...args));
 
-export const reduce = (_, collection, initialValue, lambda) =>
-  collection.reduce((...args) => lambda(...args), initialValue);
+export const reduce = (_, collection, initialValue, lambda) => {
+  return collection.reduce((...args) => lambda(...args), initialValue);
+}
 
 // variables
 export const defg = (scope, forms) => {
@@ -225,6 +226,11 @@ export const print = (_, ...args) => console.log(...args);
 export const equals = (scope, ...forms) => {
   return interpret(scope, forms[0]) === interpret(scope, forms[1]);
 };
+
+export const not = (scope, ...forms) => {
+  return !interpret(scope, forms[0]);
+};
+
 export const lessThan = (scope, ...forms) => {
   return interpret(scope, forms[0]) < interpret(scope, forms[1]);
 };
@@ -245,7 +251,7 @@ export const cond = (scope, ...forms) => {
   const caseTrue = forms[4]
   const caseFalse = forms[5]
 
-  const value = interpret(scope, forms[3]);
+  const value = interpret(scope, test);
   if (value) {
     return interpret(scope, caseTrue);
   } else {
@@ -306,6 +312,7 @@ globalScope.c.set("str", str);
 globalScope.c.set("split", split);
 globalScope.c.set("print", print);
 globalScope.c.set("equals", equals);
+globalScope.c.set("not", not);
 globalScope.c.set("=", equals);
 globalScope.c.set("<", lessThan);
 globalScope.c.set("<=", lessThanEquals);
