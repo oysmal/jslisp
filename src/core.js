@@ -105,15 +105,17 @@ function interpretForm(scope, forms) {
     const fn = findInScope(scope, forms[2]);
     if (fn) {
       if (fn.lazyEval) return fn(scope, forms);
-      const args = forms.slice(3).map(form => interpret(scope, form));
+      const args = forms.slice(3).map((form) => interpret(scope, form));
       if (STDLIB.has(fn)) {
         return fn(scope, ...args);
       } else {
-        const scopeExtractedArgs = args.map(arg => arg instanceof Function ? (...args) => arg(scope, ...args) : arg)
-        return fn(scope, ...scopeExtractedArgs)
+        const scopeExtractedArgs = args.map((arg) =>
+          arg instanceof Function ? (...args) => arg(scope, ...args) : arg,
+        );
+        return fn(scope, ...scopeExtractedArgs);
       }
     } else {
-      console.error("ERROR! Function not found in scope");
+        console.error("ERROR! Function not found in scope", forms[2]);
       console.log(forms);
     }
   }
@@ -150,7 +152,7 @@ export function interpretImport(scope, forms) {
       console.log("Importing from", process.cwd());
       const val = await import(importForm);
       scope.c.set(varName, val);
-    })
+    }),
   ).then(() => {
     interpret(scope, body);
   });
@@ -198,25 +200,32 @@ export const str = (_, ...args) => args.reduce((acc, x) => acc + x);
 export const split = (_, str, expr) => str.split(expr);
 
 // array ops
+export const concat = (_, list, ...items) => [...list, ...items];
+export const head = (_, list) => list[0];
+export const tail = (_, list) => list.slice(1);
+export const sort = (_, list, fn) => list.slice().sort(fn);
+
 export const map = (_, collection, lambda) =>
-  collection.map((...args) => lambda(...args));
+collection.map((...args) => lambda(_, ...args));
 
 export const reduce = (_, collection, initialValue, lambda) => {
-  return collection.reduce((...args) => lambda(...args), initialValue);
-}
+    return collection.reduce((...args) => lambda(_, ...args), initialValue);
+};
+
+export const length = (_, arg) => arg.length;
 
 // variables
 export const defg = (scope, forms) => {
   const key = forms[3][2];
   const value = interpret(scope, forms[4]);
   return globalScope.c.set(key, value);
-}
+};
 defg.lazyEval = true;
 
 export const g = (_, forms) => {
   const key = forms[3][2];
   return globalScope.c.get(key);
-}
+};
 g.lazyEval = true;
 
 // io
@@ -244,12 +253,24 @@ export const greaterThanEquals = (scope, ...forms) => {
   return interpret(scope, forms[0]) >= interpret(scope, forms[1]);
 };
 
+// processing
+export const parseInteger = (_, arg) => parseInt(arg);
+export const parseFloatingPoint = (_, arg) => parseFloat(arg);
+export const regexMatch = (_, regex, arg) => arg.match(regex);
+
+// dates
+export const date = (_, ...args) => new Date(...args);
+export const getTime = (_, arg) => arg.getTime();
+export const getYear = (_, arg) => arg.getYear();
+export const getMonth = (_, arg) => arg.getMonth();
+export const getDate = (_, arg) => arg.getDate();
+
 // conditionals
 
 export const cond = (scope, ...forms) => {
   const test = forms[3];
-  const caseTrue = forms[4]
-  const caseFalse = forms[5]
+  const caseTrue = forms[4];
+  const caseFalse = forms[5];
 
   const value = interpret(scope, test);
   if (value) {
@@ -257,7 +278,7 @@ export const cond = (scope, ...forms) => {
   } else {
     return interpret(scope, caseFalse);
   }
-}
+};
 cond.lazyEval = true;
 
 // code, execution
@@ -265,8 +286,8 @@ export const lambda = (surroundingScope, forms) => {
   return (_, ...argList) => {
     const scope = newChildScope(surroundingScope);
     forms[3].forEach((x, i) => {
-      const arg = interpret(surroundingScope, argList[i])
-      scope.c.set(x[2], arg)
+      const arg = interpret(surroundingScope, argList[i]);
+      scope.c.set(x[2], arg);
     });
     return interpret(scope, forms[4]);
   };
@@ -282,7 +303,7 @@ export const progn = (scope, ...forms) => {
 
 // Objects
 export const get = (scope, ...forms) => {
-  const key = forms[0].charAt(0) === ':' ? forms[0].slice(1) : forms[0];
+  const key = forms[0].charAt(0) === ":" ? forms[0].slice(1) : forms[0];
   const obj = interpret(scope, forms[1]);
   let val = obj[key];
   if (val instanceof Function) {
@@ -291,9 +312,43 @@ export const get = (scope, ...forms) => {
   return val;
 };
 
-
-[progn, cond, add, mult, sub, div, pow, sqrt, defg, g, str, split, print, equals, lessThan, lessThanEquals, greaterThan, greaterThanEquals, get, lambda, map, reduce]
-.forEach(item => STDLIB.add(item))
+[
+  progn,
+  cond,
+  add,
+  mult,
+  sub,
+  div,
+  pow,
+  sqrt,
+  defg,
+  g,
+  str,
+  split,
+  print,
+  equals,
+  lessThan,
+  lessThanEquals,
+  greaterThan,
+  greaterThanEquals,
+  get,
+  lambda,
+  map,
+  reduce,
+  length,
+  parseInteger,
+  parseFloatingPoint,
+  regexMatch,
+  date,
+  getTime,
+  getYear,
+  getMonth,
+  getDate,
+  concat,
+  head,
+  tail,
+  sort,
+].forEach((item) => STDLIB.add(item));
 
 globalScope.c.set("progn", progn);
 globalScope.c.set("add", add);
@@ -323,3 +378,16 @@ globalScope.c.set("get", get);
 globalScope.c.set("map", map);
 globalScope.c.set("reduce", reduce);
 globalScope.c.set("lambda", lambda);
+globalScope.c.set("length",length);
+globalScope.c.set("parseInt",parseInteger);
+globalScope.c.set("parseFloat",parseFloatingPoint);
+globalScope.c.set("regexMatch",regexMatch);
+globalScope.c.set("date",date);
+globalScope.c.set("getTime",getTime);
+globalScope.c.set("getYear",getYear);
+globalScope.c.set("getMonth",getMonth);
+globalScope.c.set("getDate",getDate);
+globalScope.c.set("concat",concat);
+globalScope.c.set("head",head);
+globalScope.c.set("tail",tail);
+globalScope.c.set("sort",sort);
