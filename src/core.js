@@ -110,12 +110,12 @@ function interpretForm(scope, forms) {
         return fn(scope, ...args);
       } else {
         const scopeExtractedArgs = args.map((arg) =>
-          arg instanceof Function ? (...args) => arg(scope, ...args) : arg,
+          arg instanceof Function ? (...args) => arg(scope, ...args) : arg
         );
         return fn(scope, ...scopeExtractedArgs);
       }
     } else {
-        console.error("ERROR! Function not found in scope", forms[2]);
+      console.error("ERROR! Function not found in scope", forms[2]);
       console.log(forms);
     }
   }
@@ -152,7 +152,7 @@ export function interpretImport(scope, forms) {
       console.log("Importing from", process.cwd());
       const val = await import(importForm);
       scope.c.set(varName, val);
-    }),
+    })
   ).then(() => {
     interpret(scope, body);
   });
@@ -206,10 +206,10 @@ export const tail = (_, list) => list.slice(1);
 export const sort = (_, list, fn) => list.slice().sort(fn);
 
 export const map = (_, collection, lambda) =>
-collection.map((...args) => lambda(_, ...args));
+  collection.map((...args) => lambda(_, ...args));
 
 export const reduce = (_, collection, initialValue, lambda) => {
-    return collection.reduce((...args) => lambda(_, ...args), initialValue);
+  return collection.reduce((...args) => lambda(_, ...args), initialValue);
 };
 
 export const length = (_, arg) => arg.length;
@@ -312,6 +312,19 @@ export const get = (scope, ...forms) => {
   return val;
 };
 
+export const createObject = (scope, ...forms) => {
+  const obj = {};
+  for (let i = 0; i < forms.length; i += 2) {
+    const key =
+      typeof forms[i] === "string" && forms[i].charAt(0) === ":"
+        ? forms[i].slice(1)
+        : interpret(scope, forms[i]);
+    const val = interpret(scope, forms[i + 1]);
+    obj[key] = val;
+  }
+  return obj;
+};
+
 [
   progn,
   cond,
@@ -332,6 +345,7 @@ export const get = (scope, ...forms) => {
   greaterThan,
   greaterThanEquals,
   get,
+  createObject,
   lambda,
   map,
   reduce,
@@ -375,19 +389,20 @@ globalScope.c.set(">", greaterThan);
 globalScope.c.set(">=", greaterThanEquals);
 globalScope.c.set("cond", cond);
 globalScope.c.set("get", get);
+globalScope.c.set("object", createObject);
 globalScope.c.set("map", map);
 globalScope.c.set("reduce", reduce);
 globalScope.c.set("lambda", lambda);
-globalScope.c.set("length",length);
-globalScope.c.set("parseInt",parseInteger);
-globalScope.c.set("parseFloat",parseFloatingPoint);
-globalScope.c.set("regexMatch",regexMatch);
-globalScope.c.set("date",date);
-globalScope.c.set("getTime",getTime);
-globalScope.c.set("getYear",getYear);
-globalScope.c.set("getMonth",getMonth);
-globalScope.c.set("getDate",getDate);
-globalScope.c.set("concat",concat);
-globalScope.c.set("head",head);
-globalScope.c.set("tail",tail);
-globalScope.c.set("sort",sort);
+globalScope.c.set("length", length);
+globalScope.c.set("parseInt", parseInteger);
+globalScope.c.set("parseFloat", parseFloatingPoint);
+globalScope.c.set("regexMatch", regexMatch);
+globalScope.c.set("date", date);
+globalScope.c.set("getTime", getTime);
+globalScope.c.set("getYear", getYear);
+globalScope.c.set("getMonth", getMonth);
+globalScope.c.set("getDate", getDate);
+globalScope.c.set("concat", concat);
+globalScope.c.set("head", head);
+globalScope.c.set("tail", tail);
+globalScope.c.set("sort", sort);
