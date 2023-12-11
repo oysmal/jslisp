@@ -33,8 +33,9 @@ function findInScope(curScope, key) {
 
 // Interpreter
 export function interpret(scope, forms) {
-  if (forms === null || forms === undefined || forms[0] !== JSLispForm)
+  if (forms === null || forms === undefined || forms[0] !== JSLispForm) {
     return forms;
+  }
 
   switch (forms[1]) {
     case JSLispVar:
@@ -104,7 +105,7 @@ function interpretForm(scope, forms) {
   } else {
     const fn = findInScope(scope, forms[2]);
     if (fn) {
-      if (fn.lazyEval) return fn(scope, forms);
+      if (fn.lazyEval) return fn(scope, ...forms);
       const args = forms.slice(3).map((form) => interpret(scope, form));
       if (STDLIB.has(fn)) {
         return fn(scope, ...args);
@@ -198,9 +199,14 @@ export const sqrt = (_, a) => Math.sqrt(a);
 // string ops
 export const str = (_, ...args) => args.reduce((acc, x) => acc + x);
 export const split = (_, str, expr) => str.split(expr);
+export const slice = (_, str, start, end) => str.slice(start, end);
 
 // array ops
-export const concat = (_, list, ...items) => [...list, ...items];
+export const concat = (scope, list, ...items) => {
+  const listcpy = interpret(scope, list);
+  const itemscpy = items.map((i) => interpret(scope, i));
+  return [...listcpy, ...itemscpy];
+};
 export const head = (_, list) => list[0];
 export const tail = (_, list) => list.slice(1);
 export const sort = (_, list, fn) => list.slice().sort(fn);
@@ -212,17 +218,26 @@ export const reduce = (_, collection, initialValue, lambda) => {
   return collection.reduce((...args) => lambda(_, ...args), initialValue);
 };
 
+export const some = (_, collection, lambda) =>
+  collection.some((...args) => lambda(_, ...args));
+
+export const every = (_, collection, lambda) =>
+  collection.some((...args) => lambda(_, ...args));
+
+export const findIndex = (_, collection, lambda) =>
+  collection.findIndex((...args) => lambda(_, ...args));
+
 export const length = (_, arg) => arg.length;
 
 // variables
-export const defg = (scope, forms) => {
+export const defg = (scope, ...forms) => {
   const key = forms[3][2];
   const value = interpret(scope, forms[4]);
   return globalScope.c.set(key, value);
 };
 defg.lazyEval = true;
 
-export const g = (_, forms) => {
+export const g = (_, ...forms) => {
   const key = forms[3][2];
   return globalScope.c.get(key);
 };
@@ -281,8 +296,31 @@ export const cond = (scope, ...forms) => {
 };
 cond.lazyEval = true;
 
+export const and = (scope, ...forms) => {
+  const left = interpret(scope, forms[3]);
+  if (left) {
+    const right = interpret(scope, forms[4]);
+    return right;
+  }
+  return false;
+};
+and.lazyEval = true;
+
+export const or = (scope, ...forms) => {
+  const left = interpret(scope, forms[3]);
+  const right = interpret(scope, forms[4]);
+  return left || right;
+};
+or.lazyEval = true;
+
+export const exists = (scope, ...forms) => {
+  const value = interpret(scope, forms[3]);
+  return value !== undefined && value !== null;
+};
+exists.lazyEval = true;
+
 // code, execution
-export const lambda = (surroundingScope, forms) => {
+export const lambda = (surroundingScope, ...forms) => {
   return (_, ...argList) => {
     const scope = newChildScope(surroundingScope);
     forms[3].forEach((x, i) => {
@@ -312,6 +350,14 @@ export const get = (scope, ...forms) => {
   return val;
 };
 
+export const set = (scope, ...forms) => {
+  const key = forms[0].charAt(0) === ":" ? forms[0].slice(1) : forms[0];
+  const obj = interpret(scope, forms[1]);
+  const val = interpret(scope, forms[2]);
+  obj[key] = val;
+  return val;
+};
+
 export const createObject = (scope, ...forms) => {
   const obj = {};
   for (let i = 0; i < forms.length; i += 2) {
@@ -338,17 +384,25 @@ export const createObject = (scope, ...forms) => {
   g,
   str,
   split,
+  slice,
   print,
   equals,
+  and,
+  or,
+  exists,
   lessThan,
   lessThanEquals,
   greaterThan,
   greaterThanEquals,
   get,
+  set,
   createObject,
   lambda,
   map,
   reduce,
+  some,
+  every,
+  findIndex,
   length,
   parseInteger,
   parseFloatingPoint,
@@ -379,6 +433,7 @@ globalScope.c.set("defg", defg);
 globalScope.c.set("g", g);
 globalScope.c.set("str", str);
 globalScope.c.set("split", split);
+globalScope.c.set("slice", slice);
 globalScope.c.set("print", print);
 globalScope.c.set("equals", equals);
 globalScope.c.set("not", not);
@@ -387,10 +442,17 @@ globalScope.c.set("<", lessThan);
 globalScope.c.set("<=", lessThanEquals);
 globalScope.c.set(">", greaterThan);
 globalScope.c.set(">=", greaterThanEquals);
+globalScope.c.set("and", and);
+globalScope.c.set("or", or);
+globalScope.c.set("exists", exists);
 globalScope.c.set("cond", cond);
 globalScope.c.set("get", get);
+globalScope.c.set("set", set);
 globalScope.c.set("object", createObject);
 globalScope.c.set("map", map);
+globalScope.c.set("some", some);
+globalScope.c.set("every", every);
+globalScope.c.set("findIndex", findIndex);
 globalScope.c.set("reduce", reduce);
 globalScope.c.set("lambda", lambda);
 globalScope.c.set("length", length);
