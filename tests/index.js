@@ -195,7 +195,7 @@ console.log(jslisp(`(get :random (js Math))`));
 
 // jslisp(`
 // (use
-//   testModule "../tests/example-export.js" (progn 
+//   testModule "../tests/example-export.js" (progn
 //     (def x (get :sayHello testModule))
 //     (x "World")
 //   ))
@@ -208,13 +208,36 @@ console.log(jslisp(`(get :random (js Math))`));
 // `)
 
 jslisp(`
-(use testModule "../tests/example-export.js"
-  (progn 
-    (def x (get :sayHello testModule))
-    (def timeout (get :setTimeout (js global)))
-    (timeout
-      (lambda [] (progn
-        (x "Øystein")))
-      200)
-    (x "World")))
-`)
+    (print "hello 1")
+    (def numbers ["one" "two" "three" "four" "five" "six" "seven" "eight" "nine"])
+
+    (defn isNumber [str]
+        (some numbers (lambda [item] (progn (= item str)))))
+
+    (defn isNumberPrefix [str]
+        (def sliced (map numbers
+            (lambda [item] (progn
+                (slice item 0 (length str))))))
+        (some sliced (lambda [item] (progn (= item str)))))
+
+    (defn getNumber [nums str]
+        (+ (findIndex nums (lambda [n] (progn (= n item)))) 1))
+
+    (defn lastNum [str len]
+        (def curStr (join (slice (reverse (split str "")) 0 len) ""))
+        (print "curstr" curStr)
+        (cond (and (= len 1) (exists (parseInt (curStr))))
+            (parseInt (curStr))
+            (progn
+                (print "looping")
+                (def reversedNums (map numbers (lambda [item] (progn (reverse item)))))
+                (def num (getNumber reversedNums curStr))
+                (cond (= num nil)
+                    (cond (> (+ len 1) (length str))
+                        nil
+                        (lastNum str (+ len 1))
+                    num)))))
+
+    (print "hello")
+    (print (lastNum "one two three four five six seven eight nine ten" 1))
+`);

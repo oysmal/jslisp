@@ -17,6 +17,27 @@ jslisp(`
                 (slice item 0 (length str))))))
         (some sliced (lambda [item] (progn (= item str)))))
 
+    (defn getNumber [nums str]
+        (+ (findIndex nums (lambda [n] (progn (= n item)))) 1))
+
+    (defn lastNum [str len]
+        (def curStr (join (slice (reverse str) 0 len) ""))
+        (cond (and (= len 1) (exists (parseInt (curStr))))
+            (parseInt (curStr))
+            (progn
+                (def reversedNums (map numbers (lambda [item] (progn (reverse item)))))
+                (def num (getNumber reversedNums curStr))
+                (cond (= num nil)
+                    (cond (> (+ len 1) (length str))
+                        nil
+                        (lastNum str (+ len 1))
+                    num)))))
+
+    (defn lastTextualNum [str]
+        (def rev (reverse str))
+        (def numsRev (map numbers (lambda [item] (progn (reverse item)))))
+        (def longestNum (reduce numsRev 0 (lambda [acc item] (progn (cond (> (length item) acc) (length item) acc))))))
+
     (defg arr [])
 
     (defn setNumber [obj item]

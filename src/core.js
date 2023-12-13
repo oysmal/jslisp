@@ -113,6 +113,7 @@ function interpretForm(scope, forms) {
         const scopeExtractedArgs = args.map((arg) =>
           arg instanceof Function ? (...args) => arg(scope, ...args) : arg
         );
+        console.log("fn ", fn, " args ", scopeExtractedArgs);
         return fn(scope, ...scopeExtractedArgs);
       }
     } else {
@@ -200,6 +201,10 @@ export const sqrt = (_, a) => Math.sqrt(a);
 export const str = (_, ...args) => args.reduce((acc, x) => acc + x);
 export const split = (_, str, expr) => str.split(expr);
 export const slice = (_, str, start, end) => str.slice(start, end);
+export const join = (_, arr, str) => {
+  console.log("ARR", arr);
+  return arr.join(str);
+};
 
 // array ops
 export const concat = (scope, list, ...items) => {
@@ -210,6 +215,7 @@ export const concat = (scope, list, ...items) => {
 export const head = (_, list) => list[0];
 export const tail = (_, list) => list.slice(1);
 export const sort = (_, list, fn) => list.slice().sort(fn);
+export const reverse = (_, list, fn) => list.slice().reverse(fn);
 
 export const map = (_, collection, lambda) =>
   collection.map((...args) => lambda(_, ...args));
@@ -298,8 +304,11 @@ cond.lazyEval = true;
 
 export const and = (scope, ...forms) => {
   const left = interpret(scope, forms[3]);
+  console.log("LEFT", left);
   if (left) {
+    console.log("RIGHT", forms[4]);
     const right = interpret(scope, forms[4]);
+    console.log("RIGHT", right);
     return right;
   }
   return false;
@@ -315,6 +324,7 @@ or.lazyEval = true;
 
 export const exists = (scope, ...forms) => {
   const value = interpret(scope, forms[3]);
+  console.log("VALUE", value);
   return value !== undefined && value !== null;
 };
 exists.lazyEval = true;
@@ -384,6 +394,7 @@ export const createObject = (scope, ...forms) => {
   g,
   str,
   split,
+  join,
   slice,
   print,
   equals,
@@ -416,6 +427,7 @@ export const createObject = (scope, ...forms) => {
   head,
   tail,
   sort,
+  reverse,
 ].forEach((item) => STDLIB.add(item));
 
 globalScope.c.set("progn", progn);
@@ -433,6 +445,7 @@ globalScope.c.set("defg", defg);
 globalScope.c.set("g", g);
 globalScope.c.set("str", str);
 globalScope.c.set("split", split);
+globalScope.c.set("join", join);
 globalScope.c.set("slice", slice);
 globalScope.c.set("print", print);
 globalScope.c.set("equals", equals);
@@ -468,3 +481,4 @@ globalScope.c.set("concat", concat);
 globalScope.c.set("head", head);
 globalScope.c.set("tail", tail);
 globalScope.c.set("sort", sort);
+globalScope.c.set("reverse", reverse);
